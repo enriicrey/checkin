@@ -9,21 +9,21 @@
     
     <div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         
-        <h2 style="color: #495057; text-align: center; margin-bottom: 30px;">CHECK-IN MANUAL - SUPERVISOR</h2>
+        <h2 style="color: #495057; text-align: center; margin-bottom: 30px;">🔧 CHECK-IN MANUAL - SUPERVISOR</h2>
         
         <form id="checkinForm">
             
             <!-- AUTO-RECUPERACIÓN DE TÉCNICO -->
             <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">📧 Email Técnico:</label><br>
-                <input type="email" id="tecnico" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;" 
+                <label style="font-weight: bold; color: #495057;">👤 Email Técnico:</label><br>
+                <input type="email" id="tecnico" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;" 
                        placeholder="Se auto-completa desde URL o ingresa manual">
             </div>
             
             <!-- AUTO-RECUPERACIÓN DE ZONA -->
             <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">🏭 Zona:</label><br>
-                <select id="zona" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">
+                <label style="font-weight: bold; color: #495057;">📍 Zona:</label><br>
+                <select id="zona" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;">
                     <option value="">Se auto-detecta o selecciona manual...</option>
                     <option value="Línea-A">🏭 Línea-A</option>
                     <option value="Línea-B">🏭 Línea-B</option>
@@ -37,15 +37,27 @@
             
             <!-- AUTO-RECUPERACIÓN DE SUPERVISOR -->
             <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">👤 Email Supervisor:</label><br>
-                <input type="email" id="supervisor" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;"
+                <label style="font-weight: bold; color: #495057;">📞 Email Supervisor:</label><br>
+                <input type="email" id="supervisor" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;"
                        placeholder="Se auto-detecta turno actual o ingresa manual">
             </div>
             
-            <!-- ÚNICO CAMPO MANUAL: MOTIVO -->
+            <!-- CAMPO AUTENTICACIÓN SUPERVISOR -->
+            <div style="margin: 15px 0; background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px;">
+                <label style="font-weight: bold; color: #856404;">🔐 PIN Supervisor:</label><br>
+                <input type="password" id="supervisor_pin" required 
+                       placeholder="PIN de 4 dígitos" 
+                       maxlength="4" pattern="[0-9]{4}"
+                       style="width: 150px; padding: 12px; border: 1px solid #ffc107; border-radius: 8px; margin-top: 5px; text-align: center; font-size: 18px; font-weight: bold; box-sizing: border-box;">
+                <small style="display: block; color: #856404; margin-top: 5px;">
+                    ⚠️ Solo supervisores autorizados pueden procesar check-ins manuales
+                </small>
+            </div>
+            
+            <!-- MOTIVO OBLIGATORIO -->
             <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">⚠️ Motivo Check-in Manual:</label><br>
-                <select id="motivo" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">
+                <label style="font-weight: bold; color: #495057;">📝 Motivo Check-in Manual:</label><br>
+                <select id="motivo" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;">
                     <option value="">Seleccionar motivo...</option>
                     <option value="GPS_no_funciona">📱 GPS no funciona</option>
                     <option value="Bateria_agotada">🔋 Batería agotada/teléfono apagado</option>
@@ -61,9 +73,9 @@
             
             <!-- OBSERVACIONES OPCIONALES -->
             <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">📝 Observaciones adicionales (opcional):</label><br>
+                <label style="font-weight: bold; color: #495057;">💬 Observaciones adicionales (opcional):</label><br>
                 <textarea id="observaciones" placeholder="Detalles adicionales del motivo..." 
-                         style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; resize: vertical;"></textarea>
+                         style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
             
             <!-- INFO AUTO-DETECTADA -->
@@ -130,27 +142,35 @@
             const tecnico = document.getElementById('tecnico').value;
             const zona = document.getElementById('zona').value;
             const supervisor = document.getElementById('supervisor').value;
+            const supervisorPin = document.getElementById('supervisor_pin').value;
             const motivo = document.getElementById('motivo').value;
             const observaciones = document.getElementById('observaciones').value;
             
-            // Validación
-            if (!tecnico || !zona || !supervisor || !motivo) {
-                alert('Por favor completa todos los campos obligatorios');
+            // Validación PIN
+            if (supervisorPin.length !== 4 || !/^\d{4}$/.test(supervisorPin)) {
+                alert('❌ PIN debe ser exactamente 4 dígitos numéricos');
                 return;
             }
             
-            // URL webhook
-            const url = "https://hook.eu2.make.com/XXXXXXXX" +
+            // Validación campos obligatorios
+            if (!tecnico || !zona || !supervisor || !motivo) {
+                alert('❌ Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            // URL webhook - REEMPLAZAR POR TU URL REAL
+            const url = "https://hook.eu2.make.com/TU_URL_WEBHOOK_AQUÍ" +
                        "?tecnico=" + encodeURIComponent(tecnico) +
                        "&zona=" + encodeURIComponent(zona) +
                        "&supervisor=" + encodeURIComponent(supervisor) +
+                       "&supervisor_pin=" + encodeURIComponent(supervisorPin) +
                        "&motivo=" + encodeURIComponent(motivo) +
                        "&observaciones=" + encodeURIComponent(observaciones) +
                        "&manual=true" +
                        "&timestamp=" + Math.floor(Date.now()/1000);
             
             // Confirmación antes de enviar
-            if (confirm(`✅ Confirmar check-in manual:\n\nTécnico: ${tecnico}\nZona: ${zona}\nMotivo: ${motivo}\n\n¿Proceder?`)) {
+            if (confirm(`✅ Confirmar check-in manual:\n\nTécnico: ${tecnico}\nZona: ${zona}\nMotivo: ${motivo}\nSupervisor: ${supervisor}\n\n¿Proceder?`)) {
                 window.location.href = url;
             }
         });
