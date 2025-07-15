@@ -1,160 +1,160 @@
- <!DOCTYPE html>\
-<html>\
-<head>\
-    <meta charset="UTF-8">\
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">\
-    <title>Check-in Manual Supervisor</title>\
-</head>\
-<body style="font-family: Arial; padding: 20px; background: #f8f9fa;">\
-    \
-    <div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">\
-        \
-        <h2 style="color: #495057; text-align: center; margin-bottom: 30px;">\uc0\u55357 \u56615  CHECK-IN MANUAL - SUPERVISOR</h2>\
-        \
-        <form id="checkinForm">\
-            \
-            <!-- AUTO-RECUPERACI\'d3N DE T\'c9CNICO -->\
-            <div style="margin: 15px 0;">\
-                <label style="font-weight: bold; color: #495057;">\uc0\u55357 \u56420  Email T\'e9cnico:</label><br>\
-                <input type="email" id="tecnico" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;" \
-                       placeholder="Se auto-completa desde URL o ingresa manual">\
-            </div>\
-            \
-            <!-- AUTO-RECUPERACI\'d3N DE ZONA -->\
-            <div style="margin: 15px 0;">\
-                <label style="font-weight: bold; color: #495057;">\uc0\u55357 \u56525  Zona:</label><br>\
-                <select id="zona" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">\
-                    <option value="">Se auto-detecta o selecciona manual...</option>\
-                    <option value="L\'ednea-A">\uc0\u55356 \u57325  L\'ednea-A</option>\
-                    <option value="L\'ednea-B">\uc0\u55356 \u57325  L\'ednea-B</option>\
-                    <option value="L\'ednea-C">\uc0\u55356 \u57325  L\'ednea-C</option>\
-                    <option value="Almac\'e9n">\uc0\u55357 \u56550  Almac\'e9n</option>\
-                    <option value="Utilities">\uc0\u9889  Utilities</option>\
-                    <option value="Oficinas">\uc0\u55356 \u57314  Oficinas</option>\
-                    <option value="Taller">\uc0\u55357 \u56615  Taller</option>\
-                </select>\
-            </div>\
-            \
-            <!-- AUTO-RECUPERACI\'d3N DE SUPERVISOR -->\
-            <div style="margin: 15px 0;">\
-                <label style="font-weight: bold; color: #495057;">\uc0\u55357 \u56542  Email Supervisor:</label><br>\
-                <input type="email" id="supervisor" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;"\
-                       placeholder="Se auto-detecta turno actual o ingresa manual">\
-            </div>\
-            \
-            <!-- \'daNICO CAMPO MANUAL: MOTIVO -->\
-            <div style="margin: 15px 0;">\
-                <label style="font-weight: bold; color: #495057;">\uc0\u55357 \u56541  Motivo Check-in Manual:</label><br>\
-                <select id="motivo" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">\
-                    <option value="">Seleccionar motivo...</option>\
-                    <option value="GPS_no_funciona">\uc0\u55357 \u56561  GPS no funciona</option>\
-                    <option value="Bateria_agotada">\uc0\u55357 \u56587  Bater\'eda agotada/tel\'e9fono apagado</option>\
-                    <option value="Sin_cobertura">\uc0\u55357 \u56566  Sin cobertura m\'f3vil</option>\
-                    <option value="Emergencia_operacional">\uc0\u55357 \u57000  Emergencia operacional</option>\
-                    <option value="Equipo_compartido">\uc0\u55357 \u56615  Equipo/tablet empresa sin GPS</option>\
-                    <option value="Problema_medico">\uc0\u55356 \u57317  Problema m\'e9dico leve (presente)</option>\
-                    <option value="Llegada_tardia">\uc0\u55357 \u56656  Llegada tard\'eda justificada</option>\
-                    <option value="Error_tecnico">\uc0\u9888 \u65039  Error t\'e9cnico sistema</option>\
-                    <option value="Otro">\uc0\u55357 \u56541  Otro motivo</option>\
-                </select>\
-            </div>\
-            \
-            <!-- OBSERVACIONES OPCIONALES -->\
-            <div style="margin: 15px 0;">\
-                <label style="font-weight: bold; color: #495057;">\uc0\u55357 \u56492  Observaciones adicionales (opcional):</label><br>\
-                <textarea id="observaciones" placeholder="Detalles adicionales del motivo..." \
-                         style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; resize: vertical;"></textarea>\
-            </div>\
-            \
-            <!-- INFO AUTO-DETECTADA -->\
-            <div id="autoInfo" style="background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: #6c757d;">\
-                <strong>\uc0\u8505 \u65039  Info auto-detectada:</strong><br>\
-                <span id="infoText">Cargando datos autom\'e1ticos...</span>\
-            </div>\
-            \
-            <button type="submit" style="width: 100%; background: #28a745; color: white; padding: 15px; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">\
-                \uc0\u9989  AUTORIZAR CHECK-IN MANUAL\
-            </button>\
-            \
-            <div style="text-align: center; margin-top: 15px;">\
-                <small style="color: #6c757d;">Solo usar cuando t\'e9cnico presente f\'edsicamente pero GPS falla</small>\
-            </div>\
-            \
-        </form>\
-    </div>\
-    \
-    <script>\
-        // AUTO-RECUPERACI\'d3N AL CARGAR\
-        window.onload = function() \{\
-            const params = new URLSearchParams(window.location.search);\
-            \
-            // Auto-completar t\'e9cnico si viene en URL\
-            if (params.get('tecnico')) \{\
-                document.getElementById('tecnico').value = params.get('tecnico');\
-            \}\
-            \
-            // Auto-seleccionar zona si viene en URL\
-            if (params.get('zona')) \{\
-                document.getElementById('zona').value = params.get('zona');\
-            \}\
-            \
-            // Auto-detectar supervisor por turno actual\
-            const horaActual = new Date().getHours();\
-            let supervisorSugerido = "";\
-            let turnoActual = "";\
-            \
-            if (horaActual >= 6 && horaActual < 14) \{\
-                supervisorSugerido = "supervisor.campo.a@empresa.com";\
-                turnoActual = "A (06:00-14:00)";\
-            \} else if (horaActual >= 14 && horaActual < 22) \{\
-                supervisorSugerido = "supervisor.campo.b@empresa.com";\
-                turnoActual = "B (14:00-22:00)";\
-            \} else \{\
-                supervisorSugerido = "supervisor.campo.c@empresa.com";\
-                turnoActual = "C (22:00-06:00)";\
-            \}\
-            \
-            document.getElementById('supervisor').value = supervisorSugerido;\
-            \
-            // Mostrar info auto-detectada\
-            document.getElementById('infoText').innerHTML = \
-                `Turno detectado: $\{turnoActual\}<br>` +\
-                `Supervisor sugerido: $\{supervisorSugerido\}<br>` +\
-                `Hora actual: $\{new Date().toLocaleTimeString('es-ES', \{hour: '2-digit', minute: '2-digit'\})\}`;\
-        \};\
-        \
-        // ENV\'cdO FORMULARIO\
-        document.getElementById('checkinForm').addEventListener('submit', function(e) \{\
-            e.preventDefault();\
-            \
-            const tecnico = document.getElementById('tecnico').value;\
-            const zona = document.getElementById('zona').value;\
-            const supervisor = document.getElementById('supervisor').value;\
-            const motivo = document.getElementById('motivo').value;\
-            const observaciones = document.getElementById('observaciones').value;\
-            \
-            // Validaci\'f3n\
-            if (!tecnico || !zona || !supervisor || !motivo) \{\
-                alert('\uc0\u10060  Por favor completa todos los campos obligatorios');\
-                return;\
-            \}\
-            \
-            // URL webhook\
-            const url = "https://hook.eu2.make.com/XXXXXXXX" +\
-                       "?tecnico=" + encodeURIComponent(tecnico) +\
-                       "&zona=" + encodeURIComponent(zona) +\
-                       "&supervisor=" + encodeURIComponent(supervisor) +\
-                       "&motivo=" + encodeURIComponent(motivo) +\
-                       "&observaciones=" + encodeURIComponent(observaciones) +\
-                       "&manual=true" +\
-                       "&timestamp=" + Math.floor(Date.now()/1000);\
-            \
-            // Confirmaci\'f3n antes de enviar\
-            if (confirm(`\uc0\u9989  Confirmar check-in manual:\\n\\nT\'e9cnico: $\{tecnico\}\\nZona: $\{zona\}\\nMotivo: $\{motivo\}\\n\\n\'bfProceder?`)) \{\
-                window.location.href = url;\
-            \}\
-        \});\
-    </script>\
-    \
-</body>\
-</html>}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Manual Supervisor</title>
+</head>
+<body style="font-family: Arial; padding: 20px; background: #f8f9fa;">
+    
+    <div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        
+        <h2 style="color: #495057; text-align: center; margin-bottom: 30px;">CHECK-IN MANUAL - SUPERVISOR</h2>
+        
+        <form id="checkinForm">
+            
+            <!-- AUTO-RECUPERACIÓN DE TÉCNICO -->
+            <div style="margin: 15px 0;">
+                <label style="font-weight: bold; color: #495057;">📧 Email Técnico:</label><br>
+                <input type="email" id="tecnico" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;" 
+                       placeholder="Se auto-completa desde URL o ingresa manual">
+            </div>
+            
+            <!-- AUTO-RECUPERACIÓN DE ZONA -->
+            <div style="margin: 15px 0;">
+                <label style="font-weight: bold; color: #495057;">🏭 Zona:</label><br>
+                <select id="zona" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">
+                    <option value="">Se auto-detecta o selecciona manual...</option>
+                    <option value="Línea-A">🏭 Línea-A</option>
+                    <option value="Línea-B">🏭 Línea-B</option>
+                    <option value="Línea-C">🏭 Línea-C</option>
+                    <option value="Almacén">📦 Almacén</option>
+                    <option value="Utilities">⚡ Utilities</option>
+                    <option value="Oficinas">🏢 Oficinas</option>
+                    <option value="Taller">🔧 Taller</option>
+                </select>
+            </div>
+            
+            <!-- AUTO-RECUPERACIÓN DE SUPERVISOR -->
+            <div style="margin: 15px 0;">
+                <label style="font-weight: bold; color: #495057;">👤 Email Supervisor:</label><br>
+                <input type="email" id="supervisor" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;"
+                       placeholder="Se auto-detecta turno actual o ingresa manual">
+            </div>
+            
+            <!-- ÚNICO CAMPO MANUAL: MOTIVO -->
+            <div style="margin: 15px 0;">
+                <label style="font-weight: bold; color: #495057;">⚠️ Motivo Check-in Manual:</label><br>
+                <select id="motivo" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px;">
+                    <option value="">Seleccionar motivo...</option>
+                    <option value="GPS_no_funciona">📱 GPS no funciona</option>
+                    <option value="Bateria_agotada">🔋 Batería agotada/teléfono apagado</option>
+                    <option value="Sin_cobertura">📶 Sin cobertura móvil</option>
+                    <option value="Emergencia_operacional">🚨 Emergencia operacional</option>
+                    <option value="Equipo_compartido">🔧 Equipo/tablet empresa sin GPS</option>
+                    <option value="Problema_medico">🏥 Problema médico leve (presente)</option>
+                    <option value="Llegada_tardia">🕐 Llegada tardía justificada</option>
+                    <option value="Error_tecnico">⚠️ Error técnico sistema</option>
+                    <option value="Otro">📝 Otro motivo</option>
+                </select>
+            </div>
+            
+            <!-- OBSERVACIONES OPCIONALES -->
+            <div style="margin: 15px 0;">
+                <label style="font-weight: bold; color: #495057;">📝 Observaciones adicionales (opcional):</label><br>
+                <textarea id="observaciones" placeholder="Detalles adicionales del motivo..." 
+                         style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; resize: vertical;"></textarea>
+            </div>
+            
+            <!-- INFO AUTO-DETECTADA -->
+            <div id="autoInfo" style="background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: #6c757d;">
+                <strong>ℹ️ Info auto-detectada:</strong><br>
+                <span id="infoText">Cargando datos automáticos...</span>
+            </div>
+            
+            <button type="submit" style="width: 100%; background: #28a745; color: white; padding: 15px; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+                ✅ AUTORIZAR CHECK-IN MANUAL
+            </button>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <small style="color: #6c757d;">Solo usar cuando técnico presente físicamente pero GPS falla</small>
+            </div>
+            
+        </form>
+    </div>
+    
+    <script>
+        // AUTO-RECUPERACIÓN AL CARGAR
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Auto-completar técnico si viene en URL
+            if (params.get('tecnico')) {
+                document.getElementById('tecnico').value = params.get('tecnico');
+            }
+            
+            // Auto-seleccionar zona si viene en URL
+            if (params.get('zona')) {
+                document.getElementById('zona').value = params.get('zona');
+            }
+            
+            // Auto-detectar supervisor por turno actual
+            const horaActual = new Date().getHours();
+            let supervisorSugerido = "";
+            let turnoActual = "";
+            
+            if (horaActual >= 6 && horaActual < 14) {
+                supervisorSugerido = "supervisor.campo.a@empresa.com";
+                turnoActual = "A (06:00-14:00)";
+            } else if (horaActual >= 14 && horaActual < 22) {
+                supervisorSugerido = "supervisor.campo.b@empresa.com";
+                turnoActual = "B (14:00-22:00)";
+            } else {
+                supervisorSugerido = "supervisor.campo.c@empresa.com";
+                turnoActual = "C (22:00-06:00)";
+            }
+            
+            document.getElementById('supervisor').value = supervisorSugerido;
+            
+            // Mostrar info auto-detectada
+            document.getElementById('infoText').innerHTML = 
+                `Turno detectado: ${turnoActual}<br>` +
+                `Supervisor sugerido: ${supervisorSugerido}<br>` +
+                `Hora actual: ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`;
+        };
+        
+        // ENVÍO DE FORMULARIO
+        document.getElementById('checkinForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const tecnico = document.getElementById('tecnico').value;
+            const zona = document.getElementById('zona').value;
+            const supervisor = document.getElementById('supervisor').value;
+            const motivo = document.getElementById('motivo').value;
+            const observaciones = document.getElementById('observaciones').value;
+            
+            // Validación
+            if (!tecnico || !zona || !supervisor || !motivo) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+            
+            // URL webhook
+            const url = "https://hook.eu2.make.com/XXXXXXXX" +
+                       "?tecnico=" + encodeURIComponent(tecnico) +
+                       "&zona=" + encodeURIComponent(zona) +
+                       "&supervisor=" + encodeURIComponent(supervisor) +
+                       "&motivo=" + encodeURIComponent(motivo) +
+                       "&observaciones=" + encodeURIComponent(observaciones) +
+                       "&manual=true" +
+                       "&timestamp=" + Math.floor(Date.now()/1000);
+            
+            // Confirmación antes de enviar
+            if (confirm(`✅ Confirmar check-in manual:\n\nTécnico: ${tecnico}\nZona: ${zona}\nMotivo: ${motivo}\n\n¿Proceder?`)) {
+                window.location.href = url;
+            }
+        });
+    </script>
+    
+</body>
+</html>
