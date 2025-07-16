@@ -95,44 +95,77 @@
         </form>
     </div>
     
-    <script>
+       <script>
         // AUTO-RECUPERACIÓN AL CARGAR
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
             
-            // Auto-completar técnico si viene en URL
+            // Auto-completar técnico
             if (params.get('tecnico')) {
                 document.getElementById('tecnico').value = params.get('tecnico');
             }
             
-            // Auto-seleccionar zona si viene en URL
+            // Auto-seleccionar zona
             if (params.get('zona')) {
                 document.getElementById('zona').value = params.get('zona');
             }
             
-            // Auto-detectar supervisor por turno actual
-            const horaActual = new Date().getHours();
-            let supervisorSugerido = "";
-            let turnoActual = "";
-            
-            if (horaActual >= 6 && horaActual < 14) {
-                supervisorSugerido = "supervisor.campo.a@empresa.com";
-                turnoActual = "A (06:00-14:00)";
-            } else if (horaActual >= 14 && horaActual < 22) {
-                supervisorSugerido = "supervisor.campo.b@empresa.com";
-                turnoActual = "B (14:00-22:00)";
-            } else {
-                supervisorSugerido = "supervisor.campo.c@empresa.com";
-                turnoActual = "C (22:00-06:00)";
+            // Auto-completar supervisor (DESDE WEBHOOK, NO CALCULADO)
+            if (params.get('supervisor')) {
+                document.getElementById('supervisor').value = params.get('supervisor');
             }
             
-            document.getElementById('supervisor').value = supervisorSugerido;
+            // Auto-seleccionar motivo sugerido
+            if (params.get('motivo_sugerido')) {
+                document.getElementById('motivo').value = params.get('motivo_sugerido');
+            }
             
-            // Mostrar info auto-detectada
+            // Auto-detectar turno (DESDE WEBHOOK, NO CALCULADO)
+            let turnoDetectado = params.get('turno') || "No detectado";
+            let supervisorDetectado = params.get('supervisor') || "No detectado";
+            
+            // Detectar urgente
+            if (params.get('urgente') === 'true') {
+                document.body.style.background = '#fff3cd';
+                const title = document.querySelector('h2');
+                title.innerHTML = '🚨 CHECK-IN URGENTE - GPS FALLÓ';
+                title.style.color = '#dc3545';
+                
+                // Agregar banner urgente
+                const urgentBanner = document.createElement('div');
+                urgentBanner.style.cssText = 'background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;';
+                urgentBanner.innerHTML = '<strong style="color: #721c24;">⚠️ ATENCIÓN: Técnico intentó check-in GPS pero falló.<br>Verificar presencia física antes de autorizar.</strong>';
+                document.querySelector('form').insertBefore(urgentBanner, document.querySelector('form').firstChild);
+            }
+            
+            // AUTO-DETECTAR SUPERVISOR SOLO SI NO VIENE EN URL
+            if (!params.get('supervisor')) {
+                const horaActual = new Date().getHours();
+                let supervisorSugerido = "";
+                let turnoSugerido = "";
+                
+                if (horaActual >= 6 && horaActual < 14) {
+                    supervisorSugerido = "supervisor.campo.a@empresa.com";
+                    turnoSugerido = "A (06:00-14:00) - ESTIMADO";
+                } else if (horaActual >= 14 && horaActual < 22) {
+                    supervisorSugerido = "supervisor.campo.b@empresa.com";
+                    turnoSugerido = "B (14:00-22:00) - ESTIMADO";
+                } else {
+                    supervisorSugerido = "supervisor.campo.c@empresa.com";
+                    turnoSugerido = "C (22:00-06:00) - ESTIMADO";
+                }
+                
+                document.getElementById('supervisor').value = supervisorSugerido;
+                turnoDetectado = turnoSugerido;
+                supervisorDetectado = supervisorSugerido;
+            }
+            
+            // Mostrar info detectada
             document.getElementById('infoText').innerHTML = 
-                `Turno detectado: ${turnoActual}<br>` +
-                `Supervisor sugerido: ${supervisorSugerido}<br>` +
-                `Hora actual: ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`;
+                `Turno: ${turnoDetectado}<br>` +
+                `Supervisor: ${supervisorDetectado}<br>` +
+                `Hora actual: ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}<br>` +
+                `${params.get('supervisor') ? '<strong style="color: #28a745;">✅ Datos desde sistema (precisos)</strong>' : '<strong style="color: #ffc107;">⚠️ Datos estimados por hora</strong>'}`;
         };
         
         // ENVÍO DE FORMULARIO
@@ -146,7 +179,7 @@
             const motivo = document.getElementById('motivo').value;
             const observaciones = document.getElementById('observaciones').value;
             
-            // Validación PIN
+             // Validación PIN
             if (supervisorPin.length !== 4 || !/^\d{4}$/.test(supervisorPin)) {
                 alert('❌ PIN debe ser exactamente 4 dígitos numéricos');
                 return;
@@ -158,7 +191,7 @@
                 return;
             }
             
-            // URL webhook - REEMPLAZAR POR TU URL REAL
+          // URL webhook - REEMPLAZAR POR TU URL REAL
             const url = "https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a" +
                        "?tecnico=" + encodeURIComponent(tecnico) +
                        "&zona=" + encodeURIComponent(zona) +
