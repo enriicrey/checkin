@@ -301,8 +301,8 @@
                 tecnico: params.get('tecnico') || 'No especificado',
                 zona: params.get('zona') || 'No especificada',
                 turno: params.get('turno') || 'Detectando...',
-                webhook: params.get('webhook') || 'https://hook.eu2.make.com/YOUR_MAIN_WEBHOOK',
-                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/YOUR_ERROR_WEBHOOK'
+                webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
+                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
             };
             
             webhookURL = parametrosURL.webhook;
@@ -315,7 +315,7 @@
             
             // Enlace manual
             const manualLink = document.getElementById('manual-link');
-            manualLink.href = `https://tuformulario.vercel.app?tecnico=${encodeURIComponent(parametrosURL.tecnico)}&zona=${encodeURIComponent(parametrosURL.zona)}`;
+            manualLink.href = `https://supervisor-checkin.vercel.app/supervisor.html?tecnico=${encodeURIComponent(parametrosURL.tecnico)}&zona=${encodeURIComponent(parametrosURL.zona)}`;
             
             // Validar parámetros
             if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
