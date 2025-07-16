@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in GPS - Sistema Técnicos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header .icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #3498db;
+            text-align: left;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+        }
+        
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-item .icon {
+            font-size: 18px;
+            margin-right: 12px;
+            width: 25px;
+            text-align: center;
+        }
+        
+        .info-item .text {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .info-item .value {
+            color: #34495e;
+            margin-left: 8px;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 18px 35px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            min-width: 250px;
+        }
+        
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+        
+        .button:disabled {
+            background: linear-gradient(135deg, #95a5a6 0%, #bdc3c7 100%);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 10px rgba(149, 165, 166, 0.3);
+        }
+        
+        .button.loading {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .button-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            font-size: 14px;
+            padding: 12px 25px;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+        }
+        
+        .button-secondary:hover {
+            background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
+            box-shadow: 0 6px 20px rgba(127, 140, 141, 0.4);
+        }
+        
+        .status-message {
+            margin: 20px 0;
+            min-height: 40px;
+        }
+        
+        .success-box {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            padding: 20px;
+            color: #155724;
+            font-weight: 600;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .error-box {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            border-radius: 12px;
+            padding: 20px;
+            color: #721c24;
+            font-weight: 600;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .warning-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px;
+            color: #856404;
+            font-weight: 600;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .footer p {
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .button, .button-secondary {
+                min-width: 100%;
+                margin: 8px 0;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .info-box {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        
+        <div class="header">
+            <div class="icon">📍</div>
+            <h1>CHECK-IN CON GPS</h1>
+            <p style="color: #7f8c8d; font-size: 16px;">Sistema de Control de Presencia</p>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <span class="icon">👤</span>
+                <span class="text">Técnico:</span>
+                <span class="value" id="tecnico-nombre">Cargando...</span>
+            </div>
+            <div class="info-item">
+                <span class="icon">📍</span>
+                <span class="text">Zona:</span>
+                <span class="value" id="zona-asignada">Cargando...</span>
+            </div>
+            <div class="info-item">
+                <span class="icon">⏰</span>
+                <span class="text">Turno:</span>
+                <span class="value" id="turno-info">Detectando...</span>
+            </div>
+            <div class="info-item">
+                <span class="icon">🕒</span>
+                <span class="text">Hora:</span>
+                <span class="value" id="hora-actual">--:--:--</span>
+            </div>
+        </div>
+        
+        <div class="status-message" id="status-message">
+            <div class="warning-box">
+                📋 Presiona el botón para obtener tu ubicación GPS y confirmar presencia
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button id="gps-button" class="button" onclick="iniciarCheckIn()">
+                📍 OBTENER UBICACIÓN Y CHECK-IN
+            </button>
+            
+            <a href="#" id="manual-link" class="button button-secondary">
+                🔧 Check-in Manual Supervisor
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>🔒 Tus datos están protegidos y encriptados</p>
+            <p>⚠️ Mantén activada la ubicación para un check-in exitoso</p>
+            <p>📞 En caso de problemas, el supervisor será notificado automáticamente</p>
+        </div>
+        
+    </div>
+
+    <script>
+        // Variables globales
+        let parametrosURL = {};
+        let webhookURL = '';
+        let errorWebhookURL = '';
+        
+        // Inicializar página
+        window.onload = function() {
+            cargarParametros();
+            actualizarHora();
+            setInterval(actualizarHora, 1000);
+        };
+        
+        // Cargar parámetros de URL
+        function cargarParametros() {
+            const params = new URLSearchParams(window.location.search);
+            
+            parametrosURL = {
+                tecnico: params.get('tecnico') || 'No especificado',
+                zona: params.get('zona') || 'No especificada',
+                turno: params.get('turno') || 'Detectando...',
+                webhook: params.get('webhook') || 'https://hook.eu2.make.com/YOUR_MAIN_WEBHOOK',
+                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/YOUR_ERROR_WEBHOOK'
+            };
+            
+            webhookURL = parametrosURL.webhook;
+            errorWebhookURL = parametrosURL.error_webhook;
+            
+            // Actualizar interfaz
+            document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico;
+            document.getElementById('zona-asignada').textContent = parametrosURL.zona;
+            document.getElementById('turno-info').textContent = parametrosURL.turno;
+            
+            // Enlace manual
+            const manualLink = document.getElementById('manual-link');
+            manualLink.href = `https://tuformulario.vercel.app?tecnico=${encodeURIComponent(parametrosURL.tecnico)}&zona=${encodeURIComponent(parametrosURL.zona)}`;
+            
+            // Validar parámetros
+            if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
+                mostrarError('❌ Error: Faltan parámetros de técnico. Contacta al administrador.');
+                document.getElementById('gps-button').disabled = true;
+            }
+        }
+        
+        // Actualizar hora
+        function actualizarHora() {
+            const ahora = new Date();
+            document.getElementById('hora-actual').textContent = ahora.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        
+        // Función principal check-in
+        function iniciarCheckIn() {
+            if (!navigator.geolocation) {
+                const error = 'GPS no soportado en este dispositivo';
+                enviarErrorGPS('NO_SUPPORT', error);
+                mostrarError('❌ ' + error + '<br><br>📧 Supervisor notificado automáticamente.<br>📞 O usa check-in manual.');
+                return;
+            }
+            
+            // Cambiar estado botón
+            const button = document.getElementById('gps-button');
+            button.innerHTML = '📡 Obteniendo ubicación...';
+            button.disabled = true;
+            button.classList.add('loading');
+            
+            mostrarEstado('📡 Solicitando permiso de ubicación...');
+            
+            const opciones = {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 300000
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                exitoGPS,
+                errorGPS,
+                opciones
+            );
+        }
+        
+        // GPS exitoso
+        function exitoGPS(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            mostrarEstado('✅ Ubicación obtenida. Validando coordenadas...');
+            
+            // Validación España
+            if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
+                const error = `Ubicación fuera de España: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                enviarErrorGPS('LOCATION_INVALID', error);
+                mostrarError('❌ Ubicación fuera de España detectada.<br><br>📧 Supervisor notificado automáticamente.<br>📞 Contacta si esto es incorrecto.');
+                resetearBoton();
+                return;
+            }
+            
+            // Validación precisión
+            if (accuracy > 100) {
+                if (!confirm(`⚠️ GPS poco preciso (${Math.round(accuracy)}m).\n\n¿Continuar con check-in?`)) {
+                    enviarErrorGPS('LOW_ACCURACY', `GPS impreciso: ${accuracy}m - Usuario canceló`);
+                    mostrarError('🚫 Check-in cancelado por precisión baja.<br><br>📧 Supervisor notificado.');
+                    resetearBoton();
+                    return;
+                }
+            }
+            
+            // Enviar al webhook principal
+            enviarCheckIn(lat, lng, accuracy);
+        }
+        
+        // Error GPS
+        function errorGPS(error) {
+            let errorCode = '';
+            let errorMsg = '';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorCode = 'PERMISSION_DENIED';
+                    errorMsg = 'Permisos de ubicación denegados.<br><br>🔧 Solución:<br>1. Activar ubicación en ajustes del navegador<br>2. Recargar página y permitir ubicación';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorCode = 'POSITION_UNAVAILABLE';
+                    errorMsg = 'Ubicación no disponible.<br><br>🔧 Solución:<br>1. Verificar conexión internet<br>2. Salir al exterior si estás en interior';
+                    break;
+                case error.TIMEOUT:
+                    errorCode = 'TIMEOUT';
+                    errorMsg = 'Tiempo agotado obteniendo GPS.<br><br>🔧 Solución:<br>1. Intentar de nuevo<br>2. Verificar señal GPS';
+                    break;
+                default:
+                    errorCode = 'UNKNOWN_ERROR';
+                    errorMsg = 'Error desconocido obteniendo ubicación.';
+                    break;
+            }
+            
+            enviarErrorGPS(errorCode, errorMsg.replace(/<br>/g, '\n'));
+            mostrarError('❌ ' + errorMsg + '<br><br>📧 Supervisor notificado automáticamente.<br>📞 O usa check-in manual.');
+            resetearBoton();
+        }
+        
+        // ✅ CORRECTO: Enviar check-in exitoso al webhook PRINCIPAL
+        function enviarCheckIn(lat, lng, accuracy) {
+            mostrarEstado('📤 Enviando check-in al sistema...');
+            
+            const url = webhookURL + 
+                       `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                       `&zona=${encodeURIComponent(parametrosURL.zona)}` +
+                       `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                       `&lat=${lat}` +
+                       `&lng=${lng}` +
+                       `&accuracy=${Math.round(accuracy)}` +
+                       `&timestamp=${Math.floor(Date.now()/1000)}` +
+                       `&manual=false`;
+            
+            // Pequeño delay para mostrar el mensaje
+            setTimeout(() => {
+                window.location.href = url;
+            }, 1500);
+        }
+        
+        // ✅ CORRECTO: Enviar error GPS al webhook ERROR (separado)
+        function enviarErrorGPS(errorCode, errorMessage) {
+            const url = errorWebhookURL +
+                       `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                       `&zona=${encodeURIComponent(parametrosURL.zona)}` +
+                       `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                       `&error_code=${errorCode}` +
+                       `&error_message=${encodeURIComponent(errorMessage)}` +
+                       `&timestamp=${Math.floor(Date.now()/1000)}`;
+            
+            fetch(url, {method: 'GET'})
+                .then(() => console.log('✅ Error GPS enviado a supervisor'))
+                .catch(() => console.log('❌ Error enviando notificación supervisor'));
+        }
+        
+        // Mostrar estado exitoso
+        function mostrarEstado(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class="success-box">${mensaje}</div>`;
+        }
+        
+        // Mostrar advertencia
+        function mostrarAdvertencia(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class="warning-box">${mensaje}</div>`;
+        }
+        
+        // Mostrar error
+        function mostrarError(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class="error-box">${mensaje}</div>`;
+        }
+        
+        // Resetear botón
+        function resetearBoton() {
+            const button = document.getElementById('gps-button');
+            button.innerHTML = '📍 OBTENER UBICACIÓN Y CHECK-IN';
+            button.disabled = false;
+            button.classList.remove('loading');
+        }
+    </script>
+</body>
+</html>
