@@ -424,6 +424,7 @@
         zona: params.get('zona') || 'No especificada',
         turno: params.get('turno') || 'Detectando...',
         supervisor: params.get('supervisor') || 'No especificado',
+        fecha: params.get('fecha') || new Date().toISOString().split('T')[0],
         telefono: params.get('telefono') || 'No especificado', // 
         webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
         error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
