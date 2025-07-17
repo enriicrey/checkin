@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Check-in GPS - Sistema Técnicos</title>
     <style>
-    
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -42,12 +43,12 @@
         }
         
         .header {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         .header .icon {
-            font-size: 80px;
-            margin-bottom: 15px;
+            font-size: 50px;
+            margin-bottom: 10px;
             animation: float 3s ease-in-out infinite;
         }
         
@@ -58,14 +59,14 @@
         
         .header h1 {
             color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 20px;
+            margin-bottom: 8px;
             font-weight: 700;
         }
         
         .header .subtitle {
             color: #7f8c8d;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 500;
         }
         
@@ -85,6 +86,17 @@
             margin-bottom: 8px;
             padding: 4px 0;
             font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-item:hover {
+            background: rgba(52, 152, 219, 0.05);
+            border-radius: 8px;
+            padding-left: 8px;
         }
         
         .info-item .icon {
@@ -123,6 +135,8 @@
             box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
             width: 100%;
             max-width: 280px;
+            position: relative;
+            overflow: hidden;
         }
         
         .button::before {
@@ -167,89 +181,59 @@
             50% { opacity: 0.7; transform: scale(1.02); }
         }
         
-        .button-emergency {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            font-size: 12px;
-            padding: 10px 16px;
-            width: 100%;
-            max-width: 250px;
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-            display: none;
-            animation: emergencyAppear 0.5s ease-out;
-            margin: 8px auto;
-        }
-        
-        @keyframes emergencyAppear {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .button-emergency:hover {
-            background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-            box-shadow: 0 6px 20px rgba(192, 57, 43, 0.4);
-        }
-        
         .status-message {
             margin: 15px 0;
             min-height: 30px;
         }
         
-        .success-box, .error-box, .warning-box {
+        .success-box {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
             border-radius: 10px;
             padding: 15px;
+            color: #155724;
             font-weight: 600;
             font-size: 13px;
             animation: slideIn 0.5s ease-out;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
-        .emergency-instructions {
-            background: linear-gradient(135deg, #fdf2e9 0%, #fadcd9 100%);
-            border: 2px solid #e74c3c;
-            border-radius: 12px;
+        .error-box {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            border-radius: 10px;
             padding: 15px;
-            margin: 15px 0;
-            color: #922b21;
-            font-weight: 500;
-            text-align: left;
-            display: none;
-            animation: slideIn 0.5s ease-out;
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+            color: #721c24;
+            font-weight: 600;
             font-size: 13px;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: left;
         }
         
-        .emergency-instructions h3 {
+        .error-box a {
             color: #c0392b;
-            margin-bottom: 12px;
-            text-align: center;
-            font-size: 16px;
-            font-weight: 700;
-        }
-        
-        .emergency-instructions ol {
-            margin-left: 15px;
-        }
-        
-        .emergency-instructions li {
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-        
-        .emergency-instructions .warning-text {
-            text-align: center;
-            margin-top: 10px;
+            text-decoration: none;
             font-weight: bold;
-            color: #c0392b;
-            padding: 8px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .error-box a:hover {
             background: rgba(192, 57, 43, 0.1);
-            border-radius: 6px;
-            font-size: 12px;
+        }
+        
+        .warning-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            color: #856404;
+            font-weight: 600;
+            font-size: 13px;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .footer {
@@ -267,15 +251,6 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-        }
-        
-        .phone-link {
-            color: #c0392b;
-            text-decoration: none;
-            font-weight: bold;
-            padding: 2px 4px;
-            border-radius: 4px;
-            font-size: 12px;
         }
         
         @media (max-width: 600px) {
@@ -301,20 +276,19 @@
                 padding: 12px;
             }
             
-            .button, .button-emergency {
+            .button {
                 width: 100%;
                 margin: 6px 0;
                 padding: 12px 16px;
                 font-size: 13px;
             }
             
-            .emergency-instructions {
-                padding: 12px;
+            .error-box {
                 font-size: 12px;
+                padding: 12px;
             }
         }
         
-        /* Específico para ventanas muy pequeñas como iframes */
         @media (max-width: 400px) {
             .container {
                 padding: 10px;
@@ -359,241 +333,30 @@
                 margin-top: 15px;
                 font-size: 10px;
             }
-        }
-    </style>
-</head>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 10px;
-            overflow-x: hidden;
-        }
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            max-width: 500px;
-            width: 100%;
-            padding: 40px;
-            text-align: center;
-        }
-        
-        .header {
-            margin-bottom: 30px;
-        }
-        
-        .header .icon {
-            font-size: 80px;
-            margin-bottom: 15px;
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .header h1 {
-            color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        
-        .info-box {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 15px;
-            padding: 25px;
-            margin: 25px 0;
-            border-left: 4px solid #3498db;
-            text-align: left;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            padding: 8px 0;
-        }
-        
-        .info-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .info-item .icon {
-            font-size: 18px;
-            margin-right: 12px;
-            width: 25px;
-            text-align: center;
-        }
-        
-        .info-item .text {
-            color: #2c3e50;
-            font-weight: 600;
-        }
-        
-        .info-item .value {
-            color: #34495e;
-            margin-left: 8px;
-        }
-        
-        .button {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            color: white;
-            padding: 18px 35px;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin: 15px 5px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
-            min-width: 250px;
-        }
-        
-        .button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
-        }
-        
-        .button:disabled {
-            background: linear-gradient(135deg, #95a5a6 0%, #bdc3c7 100%);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: 0 2px 10px rgba(149, 165, 166, 0.3);
-        }
-        
-        .button.loading {
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-            animation: pulse 2s infinite;
-            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .button-secondary {
-            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-            font-size: 14px;
-            padding: 12px 25px;
-            min-width: 200px;
-            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
-        }
-        
-        .button-secondary:hover {
-            background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
-            box-shadow: 0 6px 20px rgba(127, 140, 141, 0.4);
-        }
-        
-        .status-message {
-            margin: 20px 0;
-            min-height: 40px;
-        }
-        
-        .success-box {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 2px solid #28a745;
-            border-radius: 12px;
-            padding: 20px;
-            color: #155724;
-            font-weight: 600;
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        .error-box {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border: 2px solid #dc3545;
-            border-radius: 12px;
-            padding: 20px;
-            color: #721c24;
-            font-weight: 600;
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        .warning-box {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border: 2px solid #ffc107;
-            border-radius: 12px;
-            padding: 20px;
-            color: #856404;
-            font-weight: 600;
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ecf0f1;
-            color: #7f8c8d;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        
-        .footer p {
-            margin-bottom: 5px;
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
-                margin: 10px;
-            }
             
-            .button, .button-secondary {
-                min-width: 100%;
-                margin: 8px 0;
+            .error-box {
+                font-size: 11px;
+                padding: 10px;
             }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .info-box {
-                padding: 20px;
-            }
+        }
+        
+        /* Efectos adicionales para mejorar UX */
+        .container:hover {
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        .info-box:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
-    
     <div class="container">
-        
         <div class="header">
             <div class="icon">📍</div>
             <h1>CHECK-IN CON GPS</h1>
-            <p style="color: #7f8c8d; font-size: 16px;">Sistema de Control de Presencia</p>
+            <p class="subtitle">Sistema de Control de Presencia</p>
         </div>
         
         <div class="info-box">
@@ -629,226 +392,12 @@
             <button id="gps-button" class="button" onclick="iniciarCheckIn()">
                 📍 OBTENER UBICACIÓN Y CHECK-IN
             </button>
-            
-            <a href="#" id="manual-link" class="button button-secondary">
-                🔧 Check-in Manual Supervisor
-            </a>
         </div>
         
         <div class="footer">
-            <p>🔒 Tus datos están protegidos y encriptados</p>
-            <p>⚠️ Mantén activada la ubicación para un check-in exitoso</p>
-            <p>📞 En caso de problemas, el supervisor será notificado automáticamente</p>
-        </div>
-        
-    </div>
-
-    <script>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 450px;
-            width: 100%;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .header {
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header .subtitle {
-            color: #7f8c8d;
-            font-size: 16px;
-        }
-        
-        .tech-info {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-left: 4px solid #3498db;
-        }
-        
-        .tech-info h2 {
-            color: #2c3e50;
-            font-size: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 8px 0;
-        }
-        
-        .info-item .icon {
-            font-size: 18px;
-            margin-right: 10px;
-            width: 25px;
-        }
-        
-        .info-item .text {
-            color: #34495e;
-            font-weight: 500;
-        }
-        
-        .actions {
-            margin-bottom: 30px;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            margin: 10px;
-            border: none;
-            border-radius: 25px;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            min-width: 200px;
-        }
-        
-        .btn-primary {
-            background: #27ae60;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #219a52;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #7f8c8d;
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            font-weight: 500;
-            display: none;
-        }
-        
-        .status.loading {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ecf0f1;
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
-            }
-            
-            .btn {
-                min-width: 100%;
-                margin: 5px 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔧 Check-in GPS</h1>
-            <p class="subtitle">Sistema de Control de Presencia</p>
-        </div>
-        
-        <div class="tech-info">
-            <h2>📋 Información del Técnico</h2>
-            <div class="info-item">
-                <span class="icon">👤</span>
-                <span class="text" id="tecnico-name">Cargando...</span>
-            </div>
-            <div class="info-item">
-                <span class="icon">📍</span>
-                <span class="text" id="zona-name">Cargando...</span>
-            </div>
-            <div class="info-item">
-                <span class="icon">🕐</span>
-                <span class="text" id="turno-name">Cargando...</span>
-            </div>
-            <div class="info-item">
-                <span class="icon">⏰</span>
-                <span class="text" id="current-time">Cargando...</span>
-            </div>
-        </div>
-        
-        <div class="actions">
-            <button class="btn btn-primary" onclick="checkInWithGPS()" id="gps-btn">
-                📍 CHECK-IN CON GPS
-            </button>
-            
-            <a href="" class="btn btn-secondary" id="manual-btn">
-                👨‍💼 Check-in Manual
-            </a>
-        </div>
-        
-        <div class="status" id="status"></div>
-        
-        <div class="footer">
-            <p>⚠️ Mantén activada la ubicación para un check-in exitoso</p>
-            <p>🔒 Tus datos están protegidos y encriptados</p>
+            <p><span>🔒</span> Tus datos están protegidos y encriptados</p>
+            <p><span>⚠️</span> Mantén activada la ubicación para un check-in exitoso</p>
+            <p><span>📞</span> En caso de problemas, tu supervisor será notificado automáticamente</p>
         </div>
     </div>
 
@@ -857,6 +406,7 @@
         let parametrosURL = {};
         let webhookURL = '';
         let errorWebhookURL = '';
+        let telefonoSupervisor = '+34 600 111 000';
         
         // Inicializar página
         window.onload = function() {
@@ -873,26 +423,39 @@
                 tecnico: params.get('tecnico') || 'No especificado',
                 zona: params.get('zona') || 'No especificada',
                 turno: params.get('turno') || 'Detectando...',
-                webhook: params.get('webhook') || 'https://hook.eu2.make.com/TU_WEBHOOK_PRINCIPAL',
-                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/TU_WEBHOOK_ERROR'
+                webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
+                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
             };
             
             webhookURL = parametrosURL.webhook;
             errorWebhookURL = parametrosURL.error_webhook;
             
             // Actualizar interfaz
-            document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico.replace('-', '@');
+            document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico;
             document.getElementById('zona-asignada').textContent = parametrosURL.zona;
             document.getElementById('turno-info').textContent = parametrosURL.turno;
             
-            // Enlace manual
-            const manualLink = document.getElementById('manual-link');
-            manualLink.href = `https://tuformulario.vercel.app?tecnico=${encodeURIComponent(parametrosURL.tecnico)}&zona=${encodeURIComponent(parametrosURL.zona)}`;
+            // Configurar teléfono supervisor según turno
+            configurarTelefonoSupervisor();
             
             // Validar parámetros
             if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
                 mostrarError('❌ Error: Faltan parámetros de técnico. Contacta al administrador.');
                 document.getElementById('gps-button').disabled = true;
+            }
+        }
+        
+        // Configurar teléfono supervisor según turno
+        function configurarTelefonoSupervisor() {
+            const turno = parametrosURL.turno;
+            if (turno.includes('A')) {
+                telefonoSupervisor = '+34 600 111 001';
+            } else if (turno.includes('B')) {
+                telefonoSupervisor = '+34 600 111 002';
+            } else if (turno.includes('C')) {
+                telefonoSupervisor = '+34 600 111 003';
+            } else {
+                telefonoSupervisor = '+34 600 111 000';
             }
         }
         
@@ -911,7 +474,7 @@
             if (!navigator.geolocation) {
                 const error = 'GPS no soportado en este dispositivo';
                 enviarErrorGPS('NO_SUPPORT', error);
-                mostrarError('❌ ' + error + '\n\n📧 Supervisor notificado automáticamente.\n📞 O usa check-in manual.');
+                mostrarErrorSupervisor('❌ ' + error);
                 return;
             }
             
@@ -948,17 +511,16 @@
             if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
                 const error = `Ubicación fuera de España: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
                 enviarErrorGPS('LOCATION_INVALID', error);
-                mostrarError('❌ Ubicación fuera de España detectada.\n\n📧 Supervisor notificado automáticamente.\n📞 Contacta si esto es incorrecto.');
+                mostrarErrorSupervisor('❌ Ubicación fuera de España detectada');
                 resetearBoton();
                 return;
             }
             
             // Validación precisión
             if (accuracy > 100) {
-                mostrarAdvertencia(`⚠️ GPS poco preciso (${Math.round(accuracy)}m). ¿Continuar?`);
                 if (!confirm(`⚠️ GPS poco preciso (${Math.round(accuracy)}m).\n\n¿Continuar con check-in?`)) {
                     enviarErrorGPS('LOW_ACCURACY', `GPS impreciso: ${accuracy}m - Usuario canceló`);
-                    mostrarError('🚫 Check-in cancelado por precisión baja.\n\n📧 Supervisor notificado.');
+                    mostrarErrorSupervisor('🚫 Check-in cancelado por precisión baja');
                     resetearBoton();
                     return;
                 }
@@ -976,24 +538,24 @@
             switch(error.code) {
                 case error.PERMISSION_DENIED:
                     errorCode = 'PERMISSION_DENIED';
-                    errorMsg = 'Permisos de ubicación denegados.\n\n🔧 Solución:\n1. Activar ubicación en ajustes del navegador\n2. Recargar página y permitir ubicación';
+                    errorMsg = 'Permisos de ubicación denegados';
                     break;
                 case error.POSITION_UNAVAILABLE:
                     errorCode = 'POSITION_UNAVAILABLE';
-                    errorMsg = 'Ubicación no disponible.\n\n🔧 Solución:\n1. Verificar conexión internet\n2. Salir al exterior si estás en interior';
+                    errorMsg = 'Ubicación no disponible';
                     break;
                 case error.TIMEOUT:
                     errorCode = 'TIMEOUT';
-                    errorMsg = 'Tiempo agotado obteniendo GPS.\n\n🔧 Solución:\n1. Intentar de nuevo\n2. Verificar señal GPS';
+                    errorMsg = 'Tiempo agotado obteniendo GPS';
                     break;
                 default:
                     errorCode = 'UNKNOWN_ERROR';
-                    errorMsg = 'Error desconocido obteniendo ubicación.';
+                    errorMsg = 'Error desconocido obteniendo ubicación';
                     break;
             }
             
             enviarErrorGPS(errorCode, errorMsg);
-            mostrarError('❌ ' + errorMsg + '\n\n📧 Supervisor notificado automáticamente.\n📞 O usa check-in manual.');
+            mostrarErrorSupervisor(`❌ ${errorMsg}`);
             resetearBoton();
         }
         
@@ -1011,25 +573,73 @@
                        `&timestamp=${Math.floor(Date.now()/1000)}` +
                        `&manual=false`;
             
-            // Pequeño delay para mostrar el mensaje
             setTimeout(() => {
                 window.location.href = url;
             }, 1500);
         }
         
-        // Enviar error GPS a supervisor
+        // Enviar error GPS al supervisor con mapeo inteligente
         function enviarErrorGPS(errorCode, errorMessage) {
+            // Mapear código error a motivo específico
+            let motivoSugerido = '';
+            let esUrgente = false;
+            
+            switch(errorCode) {
+                case 'NO_SUPPORT':
+                    motivoSugerido = 'Equipo_compartido';
+                    esUrgente = false;
+                    break;
+                case 'PERMISSION_DENIED':
+                    motivoSugerido = 'GPS_no_funciona';
+                    esUrgente = false;
+                    break;
+                case 'POSITION_UNAVAILABLE':
+                    motivoSugerido = 'Sin_cobertura';
+                    esUrgente = false;
+                    break;
+                case 'TIMEOUT':
+                    motivoSugerido = 'GPS_no_funciona';
+                    esUrgente = false;
+                    break;
+                case 'LOCATION_INVALID':
+                    motivoSugerido = 'Error_tecnico';
+                    esUrgente = true;
+                    break;
+                case 'LOW_ACCURACY':
+                    motivoSugerido = 'GPS_no_funciona';
+                    esUrgente = false;
+                    break;
+                default:
+                    motivoSugerido = 'Error_tecnico';
+                    esUrgente = true;
+                    break;
+            }
+            
             const url = errorWebhookURL +
                        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
                        `&zona=${encodeURIComponent(parametrosURL.zona)}` +
                        `&turno=${encodeURIComponent(parametrosURL.turno)}` +
                        `&error_code=${errorCode}` +
                        `&error_message=${encodeURIComponent(errorMessage)}` +
+                       `&motivo_sugerido=${motivoSugerido}` +
+                       `&urgente=${esUrgente}` +
                        `&timestamp=${Math.floor(Date.now()/1000)}`;
             
             fetch(url, {method: 'GET'})
-                .then(() => console.log('Error GPS enviado a supervisor'))
-                .catch(() => console.log('Error enviando notificación supervisor'));
+                .then(() => console.log('✅ Error GPS enviado a supervisor'))
+                .catch(() => console.log('❌ Error enviando notificación supervisor'));
+        }
+        
+        // Mostrar error con notificación supervisor
+        function mostrarErrorSupervisor(mensaje) {
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ${mensaje}<br><br>
+                    📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
+                    🔔 Te contactará para verificar tu presencia y autorizar check-in manual<br><br>
+                    📞 <strong>Si es urgente, contacta directamente:</strong><br>
+                    <a href="tel:${telefonoSupervisor}">${telefonoSupervisor}</a>
+                </div>`;
         }
         
         // Mostrar estado exitoso
@@ -1037,14 +647,9 @@
             document.getElementById('status-message').innerHTML = `<div class="success-box">${mensaje}</div>`;
         }
         
-        // Mostrar advertencia
-        function mostrarAdvertencia(mensaje) {
-            document.getElementById('status-message').innerHTML = `<div class="warning-box">${mensaje}</div>`;
-        }
-        
-        // Mostrar error
+        // Mostrar error normal
         function mostrarError(mensaje) {
-            document.getElementById('status-message').innerHTML = `<div class="error-box">${mensaje.replace(/\n/g, '<br>')}</div>`;
+            document.getElementById('status-message').innerHTML = `<div class="error-box">${mensaje}</div>`;
         }
         
         // Resetear botón
