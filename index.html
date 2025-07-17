@@ -406,7 +406,7 @@
         let parametrosURL = {};
         let webhookURL = 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a';
         let errorWebhookURL = 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0';
-        let telefonoSupervisor = '+34 600 111 000';
+        
         
         // Inicializar página
         window.onload = function() {
@@ -420,12 +420,14 @@
             const params = new URLSearchParams(window.location.search);
             
             parametrosURL = {
-                tecnico: params.get('tecnico') || 'No especificado',
-                zona: params.get('zona') || 'No especificada',
-                turno: params.get('turno') || 'Detectando...',
-                webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
-                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
-            };
+        tecnico: params.get('tecnico') || 'No especificado',
+        zona: params.get('zona') || 'No especificada',
+        turno: params.get('turno') || 'Detectando...',
+        supervisor: params.get('supervisor') || 'No especificado',
+        telefono: params.get('telefono') || 'No especificado', // 
+        webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
+        error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
+    };
             
             webhookURL = parametrosURL.webhook;
             errorWebhookURL = parametrosURL.error_webhook;
@@ -435,27 +437,11 @@
             document.getElementById('zona-asignada').textContent = parametrosURL.zona;
             document.getElementById('turno-info').textContent = parametrosURL.turno;
             
-            // Configurar teléfono supervisor según turno
-            configurarTelefonoSupervisor();
             
             // Validar parámetros
             if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
                 mostrarError('❌ Error: Faltan parámetros de técnico. Contacta al administrador.');
                 document.getElementById('gps-button').disabled = true;
-            }
-        }
-        
-        // Configurar teléfono supervisor según turno
-        function configurarTelefonoSupervisor() {
-            const turno = parametrosURL.turno;
-            if (turno.includes('A')) {
-                telefonoSupervisor = '+34 600 111 001';
-            } else if (turno.includes('B')) {
-                telefonoSupervisor = '+34 600 111 002';
-            } else if (turno.includes('C')) {
-                telefonoSupervisor = '+34 600 111 003';
-            } else {
-                telefonoSupervisor = '+34 600 111 000';
             }
         }
         
@@ -619,6 +605,8 @@
                        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
                        `&zona=${encodeURIComponent(parametrosURL.zona)}` +
                        `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                       `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                       `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
                        `&error_code=${errorCode}` +
                        `&error_message=${encodeURIComponent(errorMessage)}` +
                        `&motivo_sugerido=${motivoSugerido}` +
@@ -627,7 +615,7 @@
             
             fetch(url, {method: 'GET'})
                 .then(() => console.log('✅ Error GPS enviado a supervisor'))
-                .catch(() => console.log('❌ Error enviando notificación supervisor'));
+                .catch(() => console.log('❌ Error de envío notificación a supervisor'));
         }
         
         // Mostrar error con notificación supervisor
