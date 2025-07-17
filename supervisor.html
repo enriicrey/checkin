@@ -1,213 +1,454 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Check-in Manual Supervisor</title>
-</head>
-<body style="font-family: Arial; padding: 20px; background: #f8f9fa;">
-    
-    <div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        <h2 style="color: #495057; text-align: center; margin-bottom: 30px;">🔧 CHECK-IN MANUAL - SUPERVISOR</h2>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            max-width: 550px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        
+        .header h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #95a5a6;
+        }
+        
+        .pin-group {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #f39c12;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .pin-group label {
+            color: #d68910 !important;
+            font-weight: 700;
+        }
+        
+        .pin-input {
+            width: 180px !important;
+            text-align: center;
+            font-size: 24px !important;
+            font-weight: bold;
+            border: 2px solid #f39c12 !important;
+            letter-spacing: 4px;
+        }
+        
+        .pin-warning {
+            margin-top: 10px;
+            color: #d68910;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .urgent-banner {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+        
+        .urgent-banner strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .icon {
+            font-size: 18px;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .header h2 {
+                font-size: 24px;
+            }
+            
+            .pin-input {
+                width: 150px !important;
+                font-size: 20px !important;
+            }
+        }
+        
+        /* Estados hover para inputs */
+        .form-group input:hover,
+        .form-group select:hover,
+        .form-group textarea:hover {
+            border-color: #bdc3c7;
+        }
+        
+        /* Animación de entrada */
+        .container {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>🔧 CHECK-IN MANUAL - SUPERVISOR</h2>
+            <p class="subtitle">Sistema de Autorización de Presencia</p>
+        </div>
         
         <form id="checkinForm">
-            
-            <!-- AUTO-RECUPERACIÓN DE TÉCNICO -->
-            <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">👤 Email Técnico:</label><br>
-                <input type="email" id="tecnico" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;" 
-                       placeholder="Se auto-completa desde URL o ingresa manual">
+            <!-- EMAIL TÉCNICO -->
+            <div class="form-group">
+                <label><span class="icon">👤</span>Email Técnico:</label>
+                <input type="email" id="tecnico" required placeholder="ejemplo.tecnico@empresa.com">
             </div>
             
-            <!-- AUTO-RECUPERACIÓN DE ZONA -->
-            <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">📍 Zona:</label><br>
-                <select id="zona" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;">
-                    <option value="">Se auto-detecta o selecciona manual...</option>
+            <!-- ZONA DROPDOWN -->
+            <div class="form-group">
+                <label><span class="icon">📍</span>Zona de Trabajo:</label>
+                <select id="zona" required>
+                    <option value="">Seleccionar zona de trabajo...</option>
+                    <option value="Todas">📋 Todas las zonas</option>
+                    <option value="Almacén">📦 Almacén</option>
+                    <option value="Laboratorio">🔬 Laboratorio</option>
                     <option value="Línea-A">🏭 Línea-A</option>
                     <option value="Línea-B">🏭 Línea-B</option>
                     <option value="Línea-C">🏭 Línea-C</option>
-                    <option value="Almacén">📦 Almacén</option>
-                    <option value="Utilities">⚡ Utilities</option>
+                    <option value="Mantenimiento">🔧 Mantenimiento</option>
                     <option value="Oficinas">🏢 Oficinas</option>
-                    <option value="Taller">🔧 Taller</option>
+                    <option value="Transporte">🚚 Transporte</option>
+                    <option value="Utilities">⚡ Utilities</option>
                 </select>
             </div>
             
-            <!-- AUTO-RECUPERACIÓN DE SUPERVISOR -->
-            <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">📞 Email Supervisor:</label><br>
-                <input type="email" id="supervisor" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;"
-                       placeholder="Se auto-detecta turno actual o ingresa manual">
+            <!-- EMAIL SUPERVISOR -->
+            <div class="form-group">
+                <label><span class="icon">📞</span>Email Supervisor:</label>
+                <input type="email" id="supervisor" required placeholder="supervisor.ejemplo@empresa.com">
             </div>
             
-            <!-- CAMPO AUTENTICACIÓN SUPERVISOR -->
-            <div style="margin: 15px 0; background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px;">
-                <label style="font-weight: bold; color: #856404;">🔐 PIN Supervisor:</label><br>
+            <!-- TURNO DROPDOWN -->
+            <div class="form-group">
+                <label><span class="icon">⏰</span>Turno de Trabajo:</label>
+                <select id="turno" required>
+                    <option value="">Seleccionar turno...</option>
+                    <option value="A">🌅 Turno A (06:00-14:00)</option>
+                    <option value="B">🌆 Turno B (14:00-22:00)</option>
+                    <option value="C">🌙 Turno C (22:00-06:00)</option>
+                    <option value="Central">🏢 Central (08:00-17:00)</option>
+                </select>
+            </div>
+            
+            <!-- PIN SUPERVISOR -->
+            <div class="pin-group">
+                <label><span class="icon">🔐</span>PIN de Autorización:</label>
                 <input type="password" id="supervisor_pin" required 
-                       placeholder="PIN de 4 dígitos" 
+                       placeholder="••••" 
                        maxlength="4" pattern="[0-9]{4}"
-                       style="width: 150px; padding: 12px; border: 1px solid #ffc107; border-radius: 8px; margin-top: 5px; text-align: center; font-size: 18px; font-weight: bold; box-sizing: border-box;">
-                <small style="display: block; color: #856404; margin-top: 5px;">
-                    ⚠️ Solo supervisores autorizados pueden procesar check-ins manuales
-                </small>
+                       class="pin-input">
+                <div class="pin-warning">
+                    <span>⚠️</span>
+                    <span>Solo supervisores autorizados pueden procesar check-ins manuales</span>
+                </div>
             </div>
             
-            <!-- MOTIVO OBLIGATORIO -->
-            <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">📝 Motivo Check-in Manual:</label><br>
-                <select id="motivo" required style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; box-sizing: border-box;">
+            <!-- MOTIVO -->
+            <div class="form-group">
+                <label><span class="icon">📝</span>Motivo del Check-in Manual:</label>
+                <select id="motivo" required>
                     <option value="">Seleccionar motivo...</option>
-                    <option value="GPS_no_funciona">📱 GPS no funciona</option>
+                    <option value="GPS_no_funciona">📱 GPS no funciona correctamente</option>
                     <option value="Bateria_agotada">🔋 Batería agotada/teléfono apagado</option>
-                    <option value="Sin_cobertura">📶 Sin cobertura móvil</option>
+                    <option value="Sin_cobertura">📶 Sin cobertura móvil en zona</option>
                     <option value="Emergencia_operacional">🚨 Emergencia operacional</option>
                     <option value="Equipo_compartido">🔧 Equipo/tablet empresa sin GPS</option>
                     <option value="Problema_medico">🏥 Problema médico leve (presente)</option>
                     <option value="Llegada_tardia">🕐 Llegada tardía justificada</option>
-                    <option value="Error_tecnico">⚠️ Error técnico sistema</option>
+                    <option value="Error_tecnico">⚠️ Error técnico del sistema</option>
                     <option value="Otro">📝 Otro motivo</option>
                 </select>
             </div>
             
-            <!-- OBSERVACIONES OPCIONALES -->
-            <div style="margin: 15px 0;">
-                <label style="font-weight: bold; color: #495057;">💬 Observaciones adicionales (opcional):</label><br>
-                <textarea id="observaciones" placeholder="Detalles adicionales del motivo..." 
-                         style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-top: 5px; resize: vertical; box-sizing: border-box;"></textarea>
+            <!-- OBSERVACIONES -->
+            <div class="form-group">
+                <label><span class="icon">💬</span>Observaciones Adicionales (opcional):</label>
+                <textarea id="observaciones" placeholder="Detalles adicionales del motivo, contexto o información relevante..." rows="3"></textarea>
             </div>
             
-            <!-- INFO AUTO-DETECTADA -->
-            <div id="autoInfo" style="background: #e9ecef; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: #6c757d;">
-                <strong>ℹ️ Info auto-detectada:</strong><br>
-                <span id="infoText">Cargando datos automáticos...</span>
-            </div>
-            
-            <button type="submit" style="width: 100%; background: #28a745; color: white; padding: 15px; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+            <button type="submit" class="submit-btn">
                 ✅ AUTORIZAR CHECK-IN MANUAL
             </button>
             
-            <div style="text-align: center; margin-top: 15px;">
-                <small style="color: #6c757d;">Solo usar cuando técnico presente físicamente pero GPS falla</small>
+            <div class="footer-note">
+                <p>🔒 Información protegida y auditada</p>
+                <p>⚠️ Solo usar cuando el técnico esté físicamente presente</p>
             </div>
-            
         </form>
     </div>
     
-       <script>
-        // AUTO-RECUPERACIÓN AL CARGAR
+    <script>
+        // CARGAR DATOS AL INICIAR
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
             
-            // Auto-completar técnico
+            // Auto-completar desde URL si existe
             if (params.get('tecnico')) {
-                document.getElementById('tecnico').value = params.get('tecnico');
+                document.getElementById('tecnico').value = params.get('tecnico').replace('-', '@');
             }
             
-            // Auto-seleccionar zona
             if (params.get('zona')) {
                 document.getElementById('zona').value = params.get('zona');
             }
             
-            // Auto-completar supervisor (DESDE WEBHOOK, NO CALCULADO)
             if (params.get('supervisor')) {
-                document.getElementById('supervisor').value = params.get('supervisor');
+                document.getElementById('supervisor').value = params.get('supervisor').replace('-', '@');
             }
             
-            // Auto-seleccionar motivo sugerido
+            if (params.get('turno')) {
+                document.getElementById('turno').value = params.get('turno');
+            }
+            
             if (params.get('motivo_sugerido')) {
                 document.getElementById('motivo').value = params.get('motivo_sugerido');
             }
             
-            // Auto-detectar turno (DESDE WEBHOOK, NO CALCULADO)
-            let turnoDetectado = params.get('turno') || "No detectado";
-            let supervisorDetectado = params.get('supervisor') || "No detectado";
-            
-            // Detectar urgente
-            if (params.get('urgente') === 'true') {
-                document.body.style.background = '#fff3cd';
-                const title = document.querySelector('h2');
-                title.innerHTML = '🚨 CHECK-IN URGENTE - GPS FALLÓ';
-                title.style.color = '#dc3545';
-                
-                // Agregar banner urgente
-                const urgentBanner = document.createElement('div');
-                urgentBanner.style.cssText = 'background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;';
-                urgentBanner.innerHTML = '<strong style="color: #721c24;">⚠️ ATENCIÓN: Técnico intentó check-in GPS pero falló.<br>Verificar presencia física antes de autorizar.</strong>';
-                document.querySelector('form').insertBefore(urgentBanner, document.querySelector('form').firstChild);
-            }
-            
-            // AUTO-DETECTAR SUPERVISOR SOLO SI NO VIENE EN URL
-            if (!params.get('supervisor')) {
+            // Auto-detectar turno por hora SOLO si no viene en URL
+            if (!params.get('turno')) {
                 const horaActual = new Date().getHours();
-                let supervisorSugerido = "";
                 let turnoSugerido = "";
                 
                 if (horaActual >= 6 && horaActual < 14) {
-                    supervisorSugerido = "supervisor.campo.a@empresa.com";
-                    turnoSugerido = "A (06:00-14:00) - ESTIMADO";
+                    turnoSugerido = "A (06:00-14:00)";
                 } else if (horaActual >= 14 && horaActual < 22) {
-                    supervisorSugerido = "supervisor.campo.b@empresa.com";
-                    turnoSugerido = "B (14:00-22:00) - ESTIMADO";
+                    turnoSugerido = "B (14:00-22:00)";
+                } else if (horaActual >= 8 && horaActual < 17) {
+                    turnoSugerido = "Central";
                 } else {
-                    supervisorSugerido = "supervisor.campo.c@empresa.com";
-                    turnoSugerido = "C (22:00-06:00) - ESTIMADO";
+                    turnoSugerido = "C (22:00-06:00)";
                 }
                 
-                document.getElementById('supervisor').value = supervisorSugerido;
-                turnoDetectado = turnoSugerido;
-                supervisorDetectado = supervisorSugerido;
+                document.getElementById('turno').value = turnoSugerido;
             }
             
-            // Mostrar info detectada
-            document.getElementById('infoText').innerHTML = 
-                `Turno: ${turnoDetectado}<br>` +
-                `Supervisor: ${supervisorDetectado}<br>` +
-                `Hora actual: ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}<br>` +
-                `${params.get('supervisor') ? '<strong style="color: #28a745;">✅ Datos desde sistema (precisos)</strong>' : '<strong style="color: #ffc107;">⚠️ Datos estimados por hora</strong>'}`;
+            // Detectar modo urgente
+            if (params.get('urgente') === 'true') {
+                document.body.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                
+                const header = document.querySelector('.header h2');
+                header.innerHTML = '🚨 CHECK-IN URGENTE - GPS FALLÓ';
+                header.style.color = '#e74c3c';
+                
+                const urgentBanner = document.createElement('div');
+                urgentBanner.className = 'urgent-banner';
+                urgentBanner.innerHTML = '<strong>⚠️ ATENCIÓN CRÍTICA</strong>El técnico intentó check-in GPS pero falló.<br>Verificar presencia física antes de autorizar.';
+                
+                const form = document.querySelector('form');
+                form.insertBefore(urgentBanner, form.firstChild);
+            }
         };
         
-        // ENVÍO DE FORMULARIO
+        // ENVÍO FORMULARIO
         document.getElementById('checkinForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const tecnico = document.getElementById('tecnico').value;
             const zona = document.getElementById('zona').value;
             const supervisor = document.getElementById('supervisor').value;
+            const turno = document.getElementById('turno').value;
             const supervisorPin = document.getElementById('supervisor_pin').value;
             const motivo = document.getElementById('motivo').value;
             const observaciones = document.getElementById('observaciones').value;
             
-             // Validación PIN
+            // Validaciones mejoradas
             if (supervisorPin.length !== 4 || !/^\d{4}$/.test(supervisorPin)) {
-                alert('❌ PIN debe ser exactamente 4 dígitos numéricos');
+                alert('❌ PIN debe ser exactamente 4 dígitos numéricos\n\nIntenta de nuevo con un PIN válido.');
+                document.getElementById('supervisor_pin').focus();
                 return;
             }
             
-            // Validación campos obligatorios
-            if (!tecnico || !zona || !supervisor || !motivo) {
-                alert('❌ Por favor completa todos los campos obligatorios');
+            if (!tecnico || !zona || !supervisor || !turno || !motivo) {
+                alert('❌ Por favor completa todos los campos obligatorios\n\nRevisa que no falte ningún campo marcado como requerido.');
                 return;
             }
             
-          // URL webhook - REEMPLAZAR POR TU URL REAL
+            // Validar formato email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(tecnico) || !emailRegex.test(supervisor)) {
+                alert('❌ Formato de email inválido\n\nVerifica que los emails tengan el formato correcto.');
+                return;
+            }
+            
+            // Construir URL webhook
             const url = "https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a" +
                        "?tecnico=" + encodeURIComponent(tecnico) +
                        "&zona=" + encodeURIComponent(zona) +
                        "&supervisor=" + encodeURIComponent(supervisor) +
+                       "&turno=" + encodeURIComponent(turno) +
                        "&supervisor_pin=" + encodeURIComponent(supervisorPin) +
                        "&motivo=" + encodeURIComponent(motivo) +
                        "&observaciones=" + encodeURIComponent(observaciones) +
                        "&manual=true" +
                        "&timestamp=" + Math.floor(Date.now()/1000);
             
-            // Confirmación antes de enviar
-            if (confirm(`✅ Confirmar check-in manual:\n\nTécnico: ${tecnico}\nZona: ${zona}\nMotivo: ${motivo}\nSupervisor: ${supervisor}\n\n¿Proceder?`)) {
-                window.location.href = url;
+            // Confirmación mejorada
+            const confirmMessage = `✅ CONFIRMAR CHECK-IN MANUAL
+            
+📋 RESUMEN:
+• Técnico: ${tecnico}
+• Zona: ${zona}
+• Turno: ${turno}
+• Motivo: ${motivo}
+• Supervisor: ${supervisor}
+
+⚠️ Esta acción será registrada y auditada.
+
+¿Confirmas el check-in manual?`;
+            
+            if (confirm(confirmMessage)) {
+                // Mostrar loading
+                const btn = document.querySelector('.submit-btn');
+                btn.innerHTML = '⏳ Procesando...';
+                btn.disabled = true;
+                
+                // Pequeño delay para UX
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 1000);
             }
         });
+        
+        // Efectos adicionales
+        document.getElementById('supervisor_pin').addEventListener('input', function(e) {
+            // Solo números
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
     </script>
-    
 </body>
 </html>
