@@ -149,28 +149,6 @@
             line-height: 1.5;
         }
         
-        .urgent-banner {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            text-align: center;
-            font-weight: 600;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.9; }
-        }
-        
-        .urgent-banner strong {
-            display: block;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-        
         .icon {
             font-size: 18px;
             margin-right: 8px;
@@ -284,16 +262,7 @@
                 <label><span class="icon">📝</span>Motivo del Check-in Manual:</label>
                 <select id="motivo" required>
                     <option value="">Seleccionar motivo...</option>
-                    <option value="🔋 Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
-                    <option value="📶 Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
-                    <option value="🚨 Emergencia operacional">🚨 Emergencia operacional</option>
-                    <option value="🔧 Equipo/tablet empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
-                    <option value="🏥 Problema médico leve (presente)">🏥 Problema médico leve (presente)</option>
-                    <option value="🕐 Llegada tardía justificada">🕐 Llegada tardía justificada</option>
-                    <option value="⚠️ Error técnico del sistema">⚠️ Error técnico del sistema</option>
-                    <option value="📱 GPS no funciona correctamente">📱 GPS no funciona correctamente</option>
-                    <option value="🔄 GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
-                    <option value="❌ Técnico agotó intentos de GPS">❌ Técnico agotó intentos de GPS</option>
+                    <!-- Errores GPS específicos -->
                     <option value="Permisos de ubicación denegados">📱 Permisos de ubicación denegados</option>
                     <option value="Ubicación no disponible">📶 Ubicación no disponible</option>
                     <option value="Tiempo agotado obteniendo GPS">⏰ Tiempo agotado obteniendo GPS</option>
@@ -301,6 +270,14 @@
                     <option value="GPS impreciso">📏 GPS impreciso</option>
                     <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
                     <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
+                    <!-- Motivos generales -->
+                    <option value="🔋 Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
+                    <option value="📶 Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
+                    <option value="🚨 Emergencia operacional">🚨 Emergencia operacional</option>
+                    <option value="🔧 Equipo/tablet empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
+                    <option value="🏥 Problema médico leve (presente)">🏥 Problema médico leve (presente)</option>
+                    <option value="🕐 Llegada tardía justificada">🕐 Llegada tardía justificada</option>
+                    <option value="⚠️ Error técnico del sistema">⚠️ Error técnico del sistema</option>
                     <option value="📝 Otro motivo">📝 Otro motivo</option>
                 </select>
             </div>
@@ -344,8 +321,45 @@
                 document.getElementById('turno').value = params.get('turno');
             }
             
-            if (params.get('motivo_sugerido')) {
-                document.getElementById('motivo').value = decodeURIComponent(params.get('motivo_sugerido'));
+            // Pre-seleccionar motivo basado en error_message
+            if (params.get('error_message')) {
+                const errorMessage = decodeURIComponent(params.get('error_message'));
+                
+                // Buscar coincidencia exacta o parcial
+                const motivoSelect = document.getElementById('motivo');
+                let encontrado = false;
+                
+                // Buscar coincidencia exacta
+                for (let option of motivoSelect.options) {
+                    if (option.value === errorMessage) {
+                        option.selected = true;
+                        encontrado = true;
+                        break;
+                    }
+                }
+                
+                // Si no encuentra exacta, buscar parcial para casos dinámicos
+                if (!encontrado) {
+                    for (let option of motivoSelect.options) {
+                        // Para "GPS impreciso: 150m" buscar "GPS impreciso"
+                        if (errorMessage.includes('GPS impreciso') && option.value.includes('GPS impreciso')) {
+                            option.selected = true;
+                            encontrado = true;
+                            break;
+                        }
+                        // Para "Ubicación fuera de España: 40.123, 3.456" buscar "Ubicación fuera de España"
+                        if (errorMessage.includes('Ubicación fuera de España') && option.value.includes('Ubicación fuera de España')) {
+                            option.selected = true;
+                            encontrado = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Si no encuentra ninguna coincidencia, dejar vacío para que el supervisor elija
+                if (!encontrado) {
+                    console.log('No se encontró coincidencia para:', errorMessage);
+                }
             }
             
             // Auto-detectar turno por hora SOLO si no viene en URL
@@ -365,9 +379,6 @@
                 
                 document.getElementById('turno').value = turnoSugerido;
             }
-            
-            // Detectar modo urgente (ELIMINADO - Ya no se usa)
-            // La variable urgente ya no existe en el sistema
         };
         
         // ENVÍO FORMULARIO
@@ -401,7 +412,7 @@
                 return;
             }
             
-            // Construir URL webhook 
+            // Construir URL webhook con fecha completa
             const url = "https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a" +
                        "?tecnico=" + encodeURIComponent(tecnico) +
                        "&zona=" + encodeURIComponent(zona) +
@@ -410,7 +421,8 @@
                        "&supervisor_pin=" + encodeURIComponent(supervisorPin) +
                        "&motivo=" + encodeURIComponent(motivo) +
                        "&observaciones=" + encodeURIComponent(observaciones) +
-                       "&fecha=" + new Date().toISOString().split('T')[0] + 
+                       "&fecha=" + new Date().toISOString().split('T')[0] +
+                       "&fecha_completa=" + encodeURIComponent(new Date().toISOString()) +
                        "&manual=true" +
                        "&timestamp=" + Math.floor(Date.now()/1000);
             
