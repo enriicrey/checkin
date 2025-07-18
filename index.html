@@ -864,7 +864,7 @@
         
         // Resetear botón
         function resetearBoton() {
-            if (!checkInEnviado) { // Solo resetear si no se ha completado
+            if (!checkInEnviado) { // Solo resetear si no se ha completado y son fallos corregibles por el técnico ya que son errores de gps y dispositivo.
                 const button = document.getElementById('gps-button');
                 button.innerHTML = '📍 OBTENER UBICACIÓN Y CHECK-IN';
                 button.disabled = false;
