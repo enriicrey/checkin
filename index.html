@@ -544,10 +544,54 @@
             document.getElementById('zona-asignada').textContent = parametrosURL.zona;
             document.getElementById('turno-info').textContent = parametrosURL.turno;
             
-            // Validar parámetros
+            // Validar parámetros principales
             if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
                 mostrarError('❌ Error: Faltan parámetros de técnico. Contacta al administrador.');
                 document.getElementById('gps-button').disabled = true;
+                document.getElementById('emergency-button').disabled = true;
+            }
+            
+            // Verificar parámetros necesarios para contactar supervisor
+            verificarParametrosSupervisor();
+        }
+        
+        // Verificar que estén todos los parámetros necesarios para contactar supervisor
+        function verificarParametrosSupervisor() {
+            const camposFaltantes = [];
+            
+            if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
+                camposFaltantes.push('técnico');
+            }
+            
+            if (!parametrosURL.supervisor || parametrosURL.supervisor === 'No especificado') {
+                camposFaltantes.push('supervisor');
+            }
+            
+            if (!parametrosURL.zona || parametrosURL.zona === 'No especificada') {
+                camposFaltantes.push('zona');
+            }
+            
+            if (!parametrosURL.turno || parametrosURL.turno === 'Detectando...') {
+                camposFaltantes.push('turno');
+            }
+            
+            if (!parametrosURL.telefono || parametrosURL.telefono === 'No especificado') {
+                camposFaltantes.push('teléfono supervisor');
+            }
+            
+            if (camposFaltantes.length > 0) {
+                // Deshabilitar botón emergencia si faltan datos
+                const emergencyButton = document.getElementById('emergency-button');
+                emergencyButton.disabled = true;
+                emergencyButton.innerHTML = '❌ DATOS INCOMPLETOS';
+                emergencyButton.style.background = '#6c757d';
+                emergencyButton.onclick = function() {
+                    alert(`❌ No se puede contactar supervisor.\n\nFaltan parámetros: ${camposFaltantes.join(', ')}\n\nContacta al administrador del sistema.`);
+                };
+                
+                console.log(`⚠️ Botón supervisor deshabilitado. Faltan: ${camposFaltantes.join(', ')}`);
+            } else {
+                console.log('✅ Todos los parámetros para supervisor están disponibles');
             }
         }
         
@@ -771,7 +815,31 @@
         
         // Contactar supervisor directamente (botón emergencia)
         function contactarSupervisor() {
-            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            // Verificar nuevamente que todos los parámetros estén disponibles
+            const camposFaltantes = [];
+            
+            if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
+                camposFaltantes.push('técnico');
+            }
+            if (!parametrosURL.supervisor || parametrosURL.supervisor === 'No especificado') {
+                camposFaltantes.push('supervisor');
+            }
+            if (!parametrosURL.zona || parametrosURL.zona === 'No especificada') {
+                camposFaltantes.push('zona');
+            }
+            if (!parametrosURL.turno || parametrosURL.turno === 'Detectando...') {
+                camposFaltantes.push('turno');
+            }
+            if (!parametrosURL.telefono || parametrosURL.telefono === 'No especificado') {
+                camposFaltantes.push('teléfono supervisor');
+            }
+            
+            if (camposFaltantes.length > 0) {
+                alert(`❌ No se puede contactar supervisor.\n\nFaltan parámetros: ${camposFaltantes.join(', ')}\n\nContacta al administrador del sistema.`);
+                return;
+            }
+            
+            const telefono = parametrosURL.telefono;
             
             // Verificar si hay algún error GPS previo
             if (!ultimoErrorGPS) {
@@ -864,7 +932,7 @@
         
         // Resetear botón
         function resetearBoton() {
-            if (!checkInEnviado) { // Solo resetear si no se ha completado y son fallos corregibles por el técnico ya que son errores de gps y dispositivo.
+            if (!checkInEnviado) { // Solo resetear si no se ha completado
                 const button = document.getElementById('gps-button');
                 button.innerHTML = '📍 OBTENER UBICACIÓN Y CHECK-IN';
                 button.disabled = false;
