@@ -531,6 +531,7 @@
                 turno: params.get('turno') || 'Detectando...',
                 supervisor: params.get('supervisor') || 'No especificado',
                 fecha: params.get('fecha') || new Date().toISOString().split('T')[0],
+                fecha_completa: new Date().toISOString(), // ← Nueva: fecha y hora completa
                 telefono: params.get('telefono') || 'No especificado',
                 webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
                 error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
@@ -784,6 +785,7 @@
                        `&zona=${encodeURIComponent(parametrosURL.zona)}` +
                        `&turno=${encodeURIComponent(parametrosURL.turno)}` +
                        `&fecha=${encodeURIComponent(parametrosURL.fecha)}` +
+                       `&fecha_completa=${encodeURIComponent(parametrosURL.fecha_completa)}` +
                        `&lat=${lat}` +
                        `&lng=${lng}` +
                        `&accuracy=${Math.round(accuracy)}` +
@@ -804,6 +806,7 @@
                        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
                        `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
                        `&fecha=${encodeURIComponent(parametrosURL.fecha)}` +
+                       `&fecha_completa=${encodeURIComponent(parametrosURL.fecha_completa)}` +
                        `&error_code=${errorCode}` +
                        `&error_message=${encodeURIComponent(errorMessage)}` +
                        `&timestamp=${Math.floor(Date.now()/1000)}`;
