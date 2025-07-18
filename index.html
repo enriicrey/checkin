@@ -181,6 +181,21 @@
             50% { opacity: 0.7; transform: scale(1.02); }
         }
         
+        .button-emergency {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            font-size: 12px;
+            padding: 10px 16px;
+            width: 100%;
+            max-width: 250px;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+            margin: 8px auto;
+        }
+        
+        .button-emergency:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+            box-shadow: 0 6px 20px rgba(192, 57, 43, 0.4);
+        }
+        
         .status-message {
             margin: 15px 0;
             min-height: 30px;
@@ -392,6 +407,10 @@
             <button id="gps-button" class="button" onclick="iniciarCheckIn()">
                 📍 OBTENER UBICACIÓN Y CHECK-IN
             </button>
+            
+            <button id="emergency-button" class="button button-emergency" onclick="contactarSupervisor()">
+                📞 CONTACTAR SUPERVISOR
+            </button>
         </div>
         
         <div class="footer">
@@ -408,8 +427,9 @@
         let errorWebhookURL = 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0';
         let checkInEnviado = false;
         let procesandoCheckIn = false;
-        let intentosGPS = 0; // ← Nuevo contador
-        const MAX_INTENTOS = 3; // ← Máximo 3 intentos
+        let intentosGPS = 0;
+        const MAX_INTENTOS = 3;
+        let ultimoErrorGPS = '';
         
         // Inicializar página
         window.onload = function() {
@@ -510,7 +530,7 @@
                 zona: params.get('zona') || 'No especificada',
                 turno: params.get('turno') || 'Detectando...',
                 supervisor: params.get('supervisor') || 'No especificado',
-                fecha: params.get('fecha') || new Date().toISOString().split('T')[0], // Nueva: fecha del check-in
+                fecha: params.get('fecha') || new Date().toISOString().split('T')[0],
                 telefono: params.get('telefono') || 'No especificado',
                 webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
                 error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
@@ -558,9 +578,9 @@
             
             if (!navigator.geolocation) {
                 const error = 'GPS no soportado en este dispositivo';
+                ultimoErrorGPS = error;
                 enviarErrorGPS('NO_SUPPORT', error);
                 mostrarErrorSupervisor('❌ ' + error);
-                // NO resetear - error no recuperable (sin GPS en dispositivo)
                 return;
             }
             
@@ -596,35 +616,6 @@
             );
         }
         
-        // Mostrar cuando se alcanza límite de intentos
-        function mostrarLimiteAlcanzado() {
-            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
-            
-            document.getElementById('status-message').innerHTML = `
-                <div class="error-box">
-                    ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
-                    📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
-                    🔔 Te contactará para autorizar check-in manual<br><br>
-                    📞 <strong>Contacta directamente para resolver:</strong><br>
-                    <a href="tel:${telefono}">${telefono}</a><br><br>
-                    💡 <strong>Posibles soluciones:</strong><br>
-                    • Verificar permisos de ubicación<br>
-                    • Salir al exterior<br>
-                    • Reiniciar navegador<br>
-                    • Usar otro dispositivo
-                </div>`;
-                
-            // Deshabilitar botón permanentemente
-            const button = document.getElementById('gps-button');
-            button.disabled = true;
-            button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
-            button.style.background = '#dc3545';
-            button.style.opacity = '0.7';
-            
-            // Enviar notificación de límite alcanzado
-            enviarErrorGPS('MAX_ATTEMPTS_REACHED', `Técnico agotó ${MAX_INTENTOS} intentos de GPS`);
-        }
-        
         // GPS exitoso
         function exitoGPS(position) {
             const lat = position.coords.latitude;
@@ -636,18 +627,20 @@
             // Validación España
             if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
                 const error = `Ubicación fuera de España: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                ultimoErrorGPS = error;
                 enviarErrorGPS('LOCATION_INVALID', error);
                 mostrarErrorSupervisor('❌ Ubicación fuera de España detectada');
-                // NO resetear - error no recuperable
                 return;
             }
             
             // Validación precisión
             if (accuracy > 100) {
                 if (!confirm(`⚠️ GPS poco preciso (${Math.round(accuracy)}m).\n\n¿Continuar con check-in?`)) {
-                    enviarErrorGPS('LOW_ACCURACY', `GPS impreciso: ${accuracy}m - Usuario canceló`);
+                    const errorPrecision = `GPS impreciso: ${Math.round(accuracy)}m`;
+                    ultimoErrorGPS = errorPrecision;
+                    enviarErrorGPS('LOW_ACCURACY_CANCELLED', errorPrecision);
                     mostrarErrorSupervisor('🚫 Check-in cancelado por precisión baja');
-                    resetearBoton(); // SÍ resetear - puede mejorar ubicación e intentar de nuevo
+                    resetearBoton();
                     return;
                 }
             }
@@ -666,7 +659,7 @@
                 case error.PERMISSION_DENIED:
                     errorCode = 'PERMISSION_DENIED';
                     errorMsg = 'Permisos de ubicación denegados';
-                    puedeReintentar = intentosGPS < MAX_INTENTOS; // Solo si no ha llegado al límite
+                    puedeReintentar = intentosGPS < MAX_INTENTOS;
                     break;
                 case error.POSITION_UNAVAILABLE:
                     errorCode = 'POSITION_UNAVAILABLE';
@@ -685,25 +678,33 @@
                     break;
             }
             
-            enviarErrorGPS(errorCode, errorMsg);
+            // Guardar último error para el botón de emergencia
+            ultimoErrorGPS = errorMsg;
+            
+            // Solo enviar error al supervisor si es no recuperable o agotó intentos
+            if (!puedeReintentar || intentosGPS >= MAX_INTENTOS) {
+                enviarErrorGPS(errorCode, errorMsg);
+            }
             
             if (puedeReintentar) {
                 mostrarErrorConReintento(errorMsg);
                 resetearBoton();
             } else {
                 mostrarErrorSupervisor(`❌ ${errorMsg}`);
-                // Si llegó al límite, no resetear
             }
         }
         
         // Mostrar error con posibilidad de reintento
         function mostrarErrorConReintento(mensaje) {
+            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            
             document.getElementById('status-message').innerHTML = `
                 <div class="error-box">
                     ❌ ${mensaje}<br><br>
                     🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
                     💡 Puedes intentar de nuevo<br><br>
-                    📧 Tu supervisor ha sido notificado del problema
+                    📞 <strong>Si necesitas ayuda inmediata:</strong><br>
+                    <a href="tel:${telefono}">${telefono}</a>
                 </div>`;
         }
         
@@ -750,38 +751,8 @@
             }, 1500);
         }
         
-        // Enviar error GPS al supervisor con mapeo inteligente
+        // Enviar error GPS al supervisor (solo cuando realmente necesario)
         function enviarErrorGPS(errorCode, errorMessage) {
-            // Mapear código error a descripción completa (igual que formulario supervisor manual)
-            let motivoSugerido = '';
-            
-            switch(errorCode) {
-                case 'NO_SUPPORT':
-                    motivoSugerido = '🔧 Equipo/tablet empresa sin GPS';
-                    break;
-                case 'PERMISSION_DENIED':
-                    motivoSugerido = '📱 GPS no funciona correctamente';
-                    break;
-                case 'POSITION_UNAVAILABLE':
-                    motivoSugerido = '📶 Sin cobertura móvil en zona';
-                    break;
-                case 'TIMEOUT':
-                    motivoSugerido = '📱 GPS no funciona correctamente';
-                    break;
-                case 'LOCATION_INVALID':
-                    motivoSugerido = '⚠️ Error técnico del sistema';
-                    break;
-                case 'LOW_ACCURACY':
-                    motivoSugerido = '📱 GPS no funciona correctamente';
-                    break;
-                case 'MAX_ATTEMPTS_REACHED':
-                    motivoSugerido = '🔄 GPS falló múltiples veces';
-                    break;
-                default:
-                    motivoSugerido = '⚠️ Error técnico del sistema';
-                    break;
-            }
-            
             const url = errorWebhookURL +
                        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
                        `&zona=${encodeURIComponent(parametrosURL.zona)}` +
@@ -789,14 +760,82 @@
                        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
                        `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
                        `&fecha=${encodeURIComponent(parametrosURL.fecha)}` +
-                       `&error_code=${errorCode}` + // ← Tipo técnico de error
-                       `&error_message=${encodeURIComponent(motivoSugerido)}` + // ← Descripción legible
-                       `&motivo_sugerido=${encodeURIComponent(motivoSugerido)}` + // ← Mismo valor para pre-selección
+                       `&error_code=${errorCode}` +
+                       `&error_message=${encodeURIComponent(errorMessage)}` +
                        `&timestamp=${Math.floor(Date.now()/1000)}`;
             
             fetch(url, {method: 'GET'})
                 .then(() => console.log('✅ Error GPS enviado a supervisor'))
                 .catch(() => console.log('❌ Error de envío notificación a supervisor'));
+        }
+        
+        // Contactar supervisor directamente (botón emergencia)
+        function contactarSupervisor() {
+            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            
+            // Verificar si hay algún error GPS previo
+            if (!ultimoErrorGPS) {
+                ultimoErrorGPS = 'GPS no disponible en dispositivo';
+            }
+            
+            // Preguntar motivo del contacto
+            if (confirm('📞 ¿Quieres contactar a tu supervisor?\n\n✅ SÍ: Te llamará para hacer check-in manual\n❌ NO: Cancelar')) {
+                
+                // Enviar notificación al supervisor con el último error GPS
+                enviarErrorGPS('SUPERVISOR_REQUESTED', ultimoErrorGPS);
+                
+                // Mostrar confirmación
+                document.getElementById('status-message').innerHTML = `
+                    <div class="success-box">
+                        📧 <strong>Supervisor notificado correctamente</strong><br><br>
+                        🔔 Tu supervisor ${parametrosURL.supervisor} ha sido informado<br>
+                        📞 Te contactará en breve para procesar check-in manual<br><br>
+                        💡 <strong>Problema reportado:</strong> ${ultimoErrorGPS}<br><br>
+                        📱 <strong>Si es urgente:</strong><br>
+                        <a href="tel:${telefono}">${telefono}</a>
+                    </div>`;
+                
+                // Deshabilitar ambos botones
+                document.getElementById('gps-button').disabled = true;
+                document.getElementById('gps-button').innerHTML = '📧 SUPERVISOR CONTACTADO';
+                document.getElementById('emergency-button').disabled = true;
+                document.getElementById('emergency-button').innerHTML = '✅ ENVIADO';
+                document.getElementById('emergency-button').style.background = '#28a745';
+            }
+        }
+        
+        // Mostrar cuando se alcanza límite de intentos
+        function mostrarLimiteAlcanzado() {
+            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
+                    📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
+                    🔔 Te contactará para autorizar check-in manual<br><br>
+                    📞 <strong>Contacta directamente para resolver:</strong><br>
+                    <a href="tel:${telefono}">${telefono}</a><br><br>
+                    💡 <strong>Posibles soluciones:</strong><br>
+                    • Verificar permisos de ubicación<br>
+                    • Salir al exterior<br>
+                    • Reiniciar navegador<br>
+                    • Usar otro dispositivo
+                </div>`;
+                
+            // Deshabilitar botón permanentemente
+            const button = document.getElementById('gps-button');
+            button.disabled = true;
+            button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+            button.style.background = '#dc3545';
+            button.style.opacity = '0.7';
+            
+            // Deshabilitar botón emergencia también
+            document.getElementById('emergency-button').disabled = true;
+            document.getElementById('emergency-button').innerHTML = '📧 SUPERVISOR NOTIFICADO';
+            document.getElementById('emergency-button').style.background = '#6c757d';
+            
+            // Enviar notificación de límite alcanzado
+            enviarErrorGPS('MAX_ATTEMPTS_REACHED', 'GPS falló múltiples veces');
         }
         
         // Mostrar error con notificación supervisor
