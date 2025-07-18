@@ -436,13 +436,14 @@
             limpiarCheckInsAntiguos();
             cargarParametros();
             
-            // Verificar estado del check-in antes de continuar
-            if (!verificarEstadoCheckIn()) {
-                return; // Detener si ya completado o enlace inválido
-            }
-            
+            // SIEMPRE actualizar hora, independientemente del estado
             actualizarHora();
             setInterval(actualizarHora, 1000);
+            
+            // Verificar estado del check-in después de cargar hora
+            if (!verificarEstadoCheckIn()) {
+                return; // Detener solo si ya completado o enlace inválido
+            }
         };
         
         // Limpiar check-ins antiguos (más de 7 días)
@@ -479,6 +480,7 @@
             if (fechaURL && fechaURL !== today) {
                 mostrarError(`❌ Este enlace es para otra fecha (${fechaURL}).<br><br>📅 Usa el enlace del calendario de hoy (${today}).`);
                 document.getElementById('gps-button').disabled = true;
+                document.getElementById('emergency-button').disabled = true;
                 return false;
             }
             
@@ -519,6 +521,13 @@
             button.innerHTML = '✅ COMPLETADO HOY';
             button.style.background = '#28a745';
             button.style.opacity = '0.7';
+            
+            // Deshabilitar botón emergencia también
+            const emergencyButton = document.getElementById('emergency-button');
+            emergencyButton.disabled = true;
+            emergencyButton.innerHTML = '✅ COMPLETADO';
+            emergencyButton.style.background = '#28a745';
+            emergencyButton.style.opacity = '0.7';
         }
         
         // Cargar parámetros de URL
