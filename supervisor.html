@@ -284,15 +284,17 @@
                 <label><span class="icon">📝</span>Motivo del Check-in Manual:</label>
                 <select id="motivo" required>
                     <option value="">Seleccionar motivo...</option>
-                    <option value="GPS_no_funciona">📱 GPS no funciona correctamente</option>
-                    <option value="Bateria_agotada">🔋 Batería agotada/teléfono apagado</option>
-                    <option value="Sin_cobertura">📶 Sin cobertura móvil en zona</option>
-                    <option value="Emergencia_operacional">🚨 Emergencia operacional</option>
-                    <option value="Equipo_compartido">🔧 Equipo/tablet empresa sin GPS</option>
-                    <option value="Problema_medico">🏥 Problema médico leve (presente)</option>
-                    <option value="Llegada_tardia">🕐 Llegada tardía justificada</option>
-                    <option value="Error_tecnico">⚠️ Error técnico del sistema</option>
-                    <option value="Otro">📝 Otro motivo</option>
+                    <option value="📱 GPS no funciona correctamente">📱 GPS no funciona correctamente</option>
+                    <option value="🔋 Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
+                    <option value="📶 Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
+                    <option value="🚨 Emergencia operacional">🚨 Emergencia operacional</option>
+                    <option value="🔧 Equipo/tablet empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
+                    <option value="🏥 Problema médico leve (presente)">🏥 Problema médico leve (presente)</option>
+                    <option value="🕐 Llegada tardía justificada">🕐 Llegada tardía justificada</option>
+                    <option value="⚠️ Error técnico del sistema">⚠️ Error técnico del sistema</option>
+                    <option value="🔄 GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
+                    <option value="❌ Técnico agotó intentos de GPS">❌ Técnico agotó intentos de GPS</option>
+                    <option value="📝 Otro motivo">📝 Otro motivo</option>
                 </select>
             </div>
             
@@ -336,7 +338,7 @@
             }
             
             if (params.get('motivo_sugerido')) {
-                document.getElementById('motivo').value = params.get('motivo_sugerido');
+                document.getElementById('motivo').value = decodeURIComponent(params.get('motivo_sugerido'));
             }
             
             // Auto-detectar turno por hora SOLO si no viene en URL
@@ -345,33 +347,20 @@
                 let turnoSugerido = "";
                 
                 if (horaActual >= 6 && horaActual < 14) {
-                    turnoSugerido = "A (06:00-14:00)";
+                    turnoSugerido = "A";
                 } else if (horaActual >= 14 && horaActual < 22) {
-                    turnoSugerido = "B (14:00-22:00)";
+                    turnoSugerido = "B";
                 } else if (horaActual >= 8 && horaActual < 17) {
                     turnoSugerido = "Central";
                 } else {
-                    turnoSugerido = "C (22:00-06:00)";
+                    turnoSugerido = "C";
                 }
                 
                 document.getElementById('turno').value = turnoSugerido;
             }
             
-            // Detectar modo urgente
-            if (params.get('urgente') === 'true') {
-                document.body.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-                
-                const header = document.querySelector('.header h2');
-                header.innerHTML = '🚨 CHECK-IN URGENTE - GPS FALLÓ';
-                header.style.color = '#e74c3c';
-                
-                const urgentBanner = document.createElement('div');
-                urgentBanner.className = 'urgent-banner';
-                urgentBanner.innerHTML = '<strong>⚠️ ATENCIÓN CRÍTICA</strong>El técnico intentó check-in GPS pero falló.<br>Verificar presencia física antes de autorizar.';
-                
-                const form = document.querySelector('form');
-                form.insertBefore(urgentBanner, form.firstChild);
-            }
+            // Detectar modo urgente (ELIMINADO - Ya no se usa)
+            // La variable urgente ya no existe en el sistema
         };
         
         // ENVÍO FORMULARIO
@@ -405,7 +394,7 @@
                 return;
             }
             
-            // Construir URL webhook
+            // Construir URL webhook 
             const url = "https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a" +
                        "?tecnico=" + encodeURIComponent(tecnico) +
                        "&zona=" + encodeURIComponent(zona) +
@@ -414,6 +403,7 @@
                        "&supervisor_pin=" + encodeURIComponent(supervisorPin) +
                        "&motivo=" + encodeURIComponent(motivo) +
                        "&observaciones=" + encodeURIComponent(observaciones) +
+                       "&fecha=" + new Date().toISOString().split('T')[0] + 
                        "&manual=true" +
                        "&timestamp=" + Math.floor(Date.now()/1000);
             
