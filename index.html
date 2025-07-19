@@ -431,7 +431,42 @@
         const MAX_INTENTOS = 3;
         let ultimoErrorGPS = '';
         
-        // Inicializar página
+        // Limpiar check-ins antiguos (más de 7 días) + parámetro debug
+        function limpiarCheckInsAntiguos() {
+            try {
+                // Verificar si viene parámetro de debug
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('debug_clear') === 'true') {
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.startsWith('checkin_')) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    console.log('🐛 DEBUG: localStorage limpiado por parámetro URL');
+                    return;
+                }
+                
+                // Limpieza automática normal (más de 7 días)
+                const keys = Object.keys(localStorage);
+                const hace7Dias = new Date();
+                hace7Dias.setDate(hace7Dias.getDate() - 7);
+                
+                keys.forEach(key => {
+                    if (key.startsWith('checkin_')) {
+                        const partes = key.split('_');
+                        if (partes.length >= 3) {
+                            const fecha = partes[2]; // Formato: YYYY-MM-DD
+                            const fechaCheckIn = new Date(fecha);
+                            if (fechaCheckIn < hace7Dias) {
+                                localStorage.removeItem(key);
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.log('Error limpiando localStorage:', error);
+            }
+        }
         window.onload = function() {
             limpiarCheckInsAntiguos();
             cargarParametros();
