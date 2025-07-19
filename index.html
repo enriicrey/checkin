@@ -370,7 +370,7 @@
     <div class="container">
         <div class="header">
             <div class="icon">📍</div>
-            <h1>CHECK-IN CON GPS</h1>
+            <h1>CHECK-IN TÉCNICOS</h1>
             <p class="subtitle">Sistema de Control de Presencia</p>
         </div>
         
@@ -388,7 +388,7 @@
             <div class="info-item">
                 <span class="icon">⏰</span>
                 <span class="text">Turno:</span>
-                <span class="value" id="turno-info">Detectando...</span>
+                <span class="value" id="turno-info">Cargando...</span>
             </div>
             <div class="info-item">
                 <span class="icon">🕒</span>
@@ -445,6 +445,261 @@
                 return; // Detener solo si ya completado o enlace inválido
             }
         };
+        
+        // Función para manejar URLs con hash o parámetros normales
+        function cargarParametrosPorHash() {
+            const params = new URLSearchParams(window.location.search);
+            const hashId = params.get('id');
+            
+            if (hashId) {
+                // URL corta con hash - NO se pueden reconstruir parámetros
+                console.log('🔗 URL corta detectada, hash:', hashId);
+                mostrarErrorHashNoSoportado(hashId);
+            } else {
+                // URL normal con parámetros completos
+                console.log('🔗 URL normal detectada');
+                cargarParametros();
+            }
+        }
+        
+        // Mostrar error con posibilidad de reintento
+        function mostrarErrorConReintento(mensaje) {
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
+            
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ❌ ${mensaje}<br><br>
+                    🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
+                    💡 Puedes intentar de nuevo<br><br>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Si necesitas ayuda inmediata:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>` 
+                        : 
+                        `📞 <strong>Para ayuda inmediata, contacta a tu supervisor</strong>`
+                    }
+                </div>`;
+        }
+        
+        // Enviar check-in exitoso
+        function enviarCheckIn(lat, lng, accuracy) {
+            if (checkInEnviado) return;
+            
+            checkInEnviado = true;
+            
+            // Marcar como completado en localStorage
+            const tecnico = parametrosURL.tecnico.replace('@', '-').replace('.', '-');
+            const fechaCheckIn = parametrosURL.fecha;
+            const checkInKey = `checkin_${tecnico}_${fechaCheckIn}`;
+            
+            try {
+                localStorage.setItem(checkInKey, 'completed');
+                localStorage.setItem(`${checkInKey}_timestamp`, new Date().toISOString());
+                console.log('✅ Check-in marcado como completado en localStorage');
+            } catch (error) {
+                console.log('❌ Error guardando en localStorage:', error);
+            }
+            
+            // Cambiar botón a estado final
+            const button = document.getElementById('gps-button');
+            button.innerHTML = '✅ CHECK-IN COMPLETADO';
+            button.style.background = '#28a745';
+            button.classList.remove('loading');
+            
+            mostrarEstado('📤 Enviando check-in al sistema...');
+            
+            const url = webhookURL + 
+                       `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                       `&zona=${encodeURIComponent(parametrosURL.zona)}` +
+                       `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                       `&fecha=${encodeURIComponent(parametrosURL.fecha)}` +
+                       `&fecha_completa=${encodeURIComponent(parametrosURL.fecha_completa)}` +
+                       `&lat=${lat}` +
+                       `&lng=${lng}` +
+                       `&accuracy=${Math.round(accuracy)}` +
+                       `&timestamp=${Math.floor(Date.now()/1000)}` +
+                       `&manual=false`;
+            
+            setTimeout(() => {
+                window.location.href = url;
+            }, 1500);
+        }
+        
+        // Enviar error GPS al supervisor (solo cuando realmente necesario)
+        function enviarErrorGPS(errorCode, errorMessage) {
+            const url = errorWebhookURL +
+                       `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                       `&zona=${encodeURIComponent(parametrosURL.zona)}` +
+                       `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                       `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                       `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                       `&fecha=${encodeURIComponent(parametrosURL.fecha)}` +
+                       `&fecha_completa=${encodeURIComponent(parametrosURL.fecha_completa)}` +
+                       `&error_code=${errorCode}` +
+                       `&error_message=${encodeURIComponent(errorMessage)}` +
+                       `&timestamp=${Math.floor(Date.now()/1000)}`;
+            
+            fetch(url, {method: 'GET'})
+                .then(() => console.log('✅ Error GPS enviado a supervisor'))
+                .catch(() => console.log('❌ Error de envío notificación a supervisor'));
+        }
+        
+        // Contactar supervisor directamente (botón emergencia)
+        function contactarSupervisor() {
+            // Verificar nuevamente que todos los parámetros estén disponibles
+            const camposFaltantes = [];
+            
+            if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
+                camposFaltantes.push('técnico');
+            }
+            if (!parametrosURL.supervisor || parametrosURL.supervisor === 'No especificado') {
+                camposFaltantes.push('supervisor');
+            }
+            if (!parametrosURL.zona || parametrosURL.zona === 'No especificada') {
+                camposFaltantes.push('zona');
+            }
+            if (!parametrosURL.turno || parametrosURL.turno === 'No especificado') {
+                camposFaltantes.push('turno');
+            }
+            if (!parametrosURL.telefono || parametrosURL.telefono === 'No especificado') {
+                camposFaltantes.push('teléfono supervisor');
+            }
+            
+            if (camposFaltantes.length > 0) {
+                alert(`❌ No se puede contactar supervisor.\n\nFaltan parámetros: ${camposFaltantes.join(', ')}\n\nContacta al administrador del sistema.`);
+                return;
+            }
+            
+            const telefono = parametrosURL.telefono;
+            
+            // Verificar si hay algún error GPS previo
+            if (!ultimoErrorGPS) {
+                ultimoErrorGPS = 'GPS no disponible en dispositivo';
+            }
+            
+            // Preguntar motivo del contacto
+            if (confirm('📞 ¿Quieres contactar a tu supervisor?\n\n✅ SÍ: Te llamará para hacer check-in manual\n❌ NO: Cancelar')) {
+                
+                // Enviar notificación al supervisor con el último error GPS
+                enviarErrorGPS('SUPERVISOR_REQUESTED', ultimoErrorGPS);
+                
+                // Mostrar confirmación
+                document.getElementById('status-message').innerHTML = `
+                    <div class="success-box">
+                        📧 <strong>Supervisor notificado correctamente</strong><br><br>
+                        🔔 Tu supervisor ${parametrosURL.supervisor} ha sido informado<br>
+                        📞 Te contactará en breve para procesar check-in manual<br><br>
+                        💡 <strong>Problema reportado:</strong> ${ultimoErrorGPS}<br><br>
+                        📱 <strong>Si es urgente:</strong><br>
+                        <a href="tel:${telefono}">${telefono}</a>
+                    </div>`;
+                
+                // Deshabilitar ambos botones
+                document.getElementById('gps-button').disabled = true;
+                document.getElementById('gps-button').innerHTML = '📧 SUPERVISOR CONTACTADO';
+                document.getElementById('emergency-button').disabled = true;
+                document.getElementById('emergency-button').innerHTML = '✅ ENVIADO';
+                document.getElementById('emergency-button').style.background = '#28a745';
+            }
+        }
+        
+        // Mostrar cuando se alcanza límite de intentos
+        function mostrarLimiteAlcanzado() {
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
+            
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
+                    📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
+                    🔔 Te contactará para autorizar check-in manual<br><br>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Contacta directamente para resolver:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a><br><br>` 
+                        : 
+                        `📞 <strong>Contacta a tu supervisor para resolver el problema</strong><br><br>`
+                    }
+                    💡 <strong>Posibles soluciones:</strong><br>
+                    • Verificar permisos de ubicación<br>
+                    • Salir al exterior<br>
+                    • Reiniciar navegador<br>
+                    • Usar otro dispositivo
+                </div>`;
+                
+            // Deshabilitar botón permanentemente
+            const button = document.getElementById('gps-button');
+            button.disabled = true;
+            button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+            button.style.background = '#dc3545';
+            button.style.opacity = '0.7';
+            
+            // Deshabilitar botón emergencia también
+            document.getElementById('emergency-button').disabled = true;
+            document.getElementById('emergency-button').innerHTML = '📧 SUPERVISOR NOTIFICADO';
+            document.getElementById('emergency-button').style.background = '#6c757d';
+            
+            // Enviar notificación de límite alcanzado
+            enviarErrorGPS('MAX_ATTEMPTS_REACHED', 'GPS falló múltiples veces');
+        }
+        
+        // Mostrar error con notificación supervisor
+        function mostrarErrorSupervisor(mensaje) {
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
+            
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ${mensaje}<br><br>
+                    📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
+                    🔔 Te contactará para verificar tu presencia y autorizar check-in manual<br><br>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Si es urgente, contacta directamente:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>` 
+                        : 
+                        `📞 <strong>Si es urgente, contacta a tu supervisor</strong>`
+                    }
+                </div>`;
+        }
+        
+        // Mostrar estado exitoso
+        function mostrarEstado(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class="success-box">${mensaje}</div>`;
+        }
+        
+        // Mostrar error normal
+        function mostrarError(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class="error-box">${mensaje}</div>`;
+        }
+        
+        // Resetear botón
+        function resetearBoton() {
+            if (!checkInEnviado) { // Solo resetear si no se ha completado
+                const button = document.getElementById('gps-button');
+                button.innerHTML = '📍 OBTENER UBICACIÓN Y CHECK-IN';
+                button.disabled = false;
+                button.classList.remove('loading');
+                button.style.background = '';
+                button.style.opacity = '';
+                procesandoCheckIn = false;
+            }
+        }
+    </script>
+</body>
+</html>rar error cuando viene URL con hash (no soportado sin base de datos)
+        function mostrarErrorHashNoSoportado(hashId) {
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ❌ <strong>URL con hash no soportada</strong><br><br>
+                    🔗 <strong>Hash recibido:</strong> ${hashId}<br><br>
+                    💡 <strong>Para usar URLs cortas necesitas:</strong><br>
+                    • Implementar base de datos para lookup<br>
+                    • O usar parámetros completos en la URL<br><br>
+                    📞 <strong>Contacta al administrador del sistema</strong>
+                </div>`;
+                
+            // Deshabilitar botones
+            document.getElementById('gps-button').disabled = true;
+            document.getElementById('emergency-button').disabled = true;
+            
+            // Mostrar valores por defecto en interfaz
+            document.getElementById('tecnico-nombre').textContent = 'Hash: ' + hashId;
+            document.getElementById('zona-asignada').textContent = 'No disponible';
+            document.getElementById('turno-info').textContent = 'No disponible';
+        }
         
         // Limpiar check-ins antiguos (más de 7 días)
         function limpiarCheckInsAntiguos() {
@@ -530,29 +785,39 @@
             emergencyButton.style.opacity = '0.7';
         }
         
-        // Cargar parámetros de URL
+        // Cargar parámetros de URL (formato normal)
         function cargarParametros() {
             const params = new URLSearchParams(window.location.search);
             
             parametrosURL = {
-                tecnico: params.get('tecnico') || 'No especificado',
-                zona: params.get('zona') || 'No especificada',
-                turno: params.get('turno') || 'Detectando...',
-                supervisor: params.get('supervisor') || 'No especificado',
-                fecha: params.get('fecha') || new Date().toISOString().split('T')[0],
-                fecha_completa: new Date().toISOString(), // ← Nueva: fecha y hora completa
-                telefono: params.get('telefono') || 'No especificado',
-                webhook: params.get('webhook') || 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
-                error_webhook: params.get('error_webhook') || 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
+                // Soporta tanto parámetros normales como abreviados
+                tecnico: params.get('t') || params.get('tecnico') || 'No especificado',
+                zona: params.get('z') || params.get('zona') || 'No especificada',
+                turno: params.get('tu') || params.get('turno') || 'No especificado',
+                supervisor: params.get('s') || params.get('supervisor') || 'No especificado',
+                fecha: params.get('f') || params.get('fecha') || new Date().toISOString().split('T')[0],
+                telefono: params.get('tel') || params.get('telefono') || 'No especificado',
+                
+                // Webhooks fijos (no vienen en URL para acortarla)
+                webhook: 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a',
+                error_webhook: 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0',
+                
+                // Calculados
+                fecha_completa: new Date().toISOString()
             };
             
-            webhookURL = parametrosURL.webhook;
-            errorWebhookURL = parametrosURL.error_webhook;
-            
-            // Actualizar interfaz
+            actualizarInterfaz();
+        }
+        
+        // Actualizar interfaz con parámetros cargados
+        function actualizarInterfaz() {
             document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico;
             document.getElementById('zona-asignada').textContent = parametrosURL.zona;
             document.getElementById('turno-info').textContent = parametrosURL.turno;
+            
+            // Actualizar webhooks
+            webhookURL = parametrosURL.webhook;
+            errorWebhookURL = parametrosURL.error_webhook;
             
             // Validar parámetros principales
             if (!parametrosURL.tecnico || parametrosURL.tecnico === 'No especificado') {
@@ -581,7 +846,7 @@
                 camposFaltantes.push('zona');
             }
             
-            if (!parametrosURL.turno || parametrosURL.turno === 'Detectando...') {
+            if (!parametrosURL.turno || parametrosURL.turno === 'No especificado') {
                 camposFaltantes.push('turno');
             }
             
@@ -750,15 +1015,18 @@
         
         // Mostrar error con posibilidad de reintento
         function mostrarErrorConReintento(mensaje) {
-            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
             
             document.getElementById('status-message').innerHTML = `
                 <div class="error-box">
                     ❌ ${mensaje}<br><br>
                     🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
                     💡 Puedes intentar de nuevo<br><br>
-                    📞 <strong>Si necesitas ayuda inmediata:</strong><br>
-                    <a href="tel:${telefono}">${telefono}</a>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Si necesitas ayuda inmediata:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>` 
+                        : 
+                        `📞 <strong>Para ayuda inmediata, contacta a tu supervisor</strong>`
+                    }
                 </div>`;
         }
         
@@ -839,7 +1107,7 @@
             if (!parametrosURL.zona || parametrosURL.zona === 'No especificada') {
                 camposFaltantes.push('zona');
             }
-            if (!parametrosURL.turno || parametrosURL.turno === 'Detectando...') {
+            if (!parametrosURL.turno || parametrosURL.turno === 'No especificado') {
                 camposFaltantes.push('turno');
             }
             if (!parametrosURL.telefono || parametrosURL.telefono === 'No especificado') {
@@ -886,15 +1154,18 @@
         
         // Mostrar cuando se alcanza límite de intentos
         function mostrarLimiteAlcanzado() {
-            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
             
             document.getElementById('status-message').innerHTML = `
                 <div class="error-box">
                     ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
                     📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
                     🔔 Te contactará para autorizar check-in manual<br><br>
-                    📞 <strong>Contacta directamente para resolver:</strong><br>
-                    <a href="tel:${telefono}">${telefono}</a><br><br>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Contacta directamente para resolver:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a><br><br>` 
+                        : 
+                        `📞 <strong>Contacta a tu supervisor para resolver el problema</strong><br><br>`
+                    }
                     💡 <strong>Posibles soluciones:</strong><br>
                     • Verificar permisos de ubicación<br>
                     • Salir al exterior<br>
@@ -920,15 +1191,18 @@
         
         // Mostrar error con notificación supervisor
         function mostrarErrorSupervisor(mensaje) {
-            const telefono = parametrosURL.telefono !== 'No especificado' ? parametrosURL.telefono : '+34 600 111 000';
+            const tieneTransaccional = parametrosURL.telefono && parametrosURL.telefono !== 'No especificado';
             
             document.getElementById('status-message').innerHTML = `
                 <div class="error-box">
                     ${mensaje}<br><br>
                     📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
                     🔔 Te contactará para verificar tu presencia y autorizar check-in manual<br><br>
-                    📞 <strong>Si es urgente, contacta directamente:</strong><br>
-                    <a href="tel:${telefono}">${telefono}</a>
+                    ${tieneTransaccional ? 
+                        `📞 <strong>Si es urgente, contacta directamente:</strong><br><a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>` 
+                        : 
+                        `📞 <strong>Si es urgente, contacta a tu supervisor</strong>`
+                    }
                 </div>`;
         }
         
