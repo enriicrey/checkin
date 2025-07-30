@@ -351,7 +351,7 @@
   <script>
     // CONFIGURACIÓN DE ZONAS CON EMOJIS
     const zonasConfiguracion = {
-      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 5000, tipo: "produccion", codigo: "LA", emoji: "🏭" },
+      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
       "Todas": { lat: 40.4168, lng: -3.7038, radio: 1000, tipo: "general", codigo: "ALL", emoji: "🌟" },
       "Utilities": { lat: 40.4200, lng: -3.7100, radio: 600, tipo: "utilities", codigo: "UTIL", emoji: "⚡" },
       "Laboratorio": { lat: 40.4150, lng: -3.7050, radio: 400, tipo: "laboratorio", codigo: "LAB", emoji: "🔬" },
@@ -365,7 +365,7 @@
 
     // WEBHOOKS PARA MAKE
     const webhookExitoso = 'https://hook.eu2.make.com/ce7vo1vgbpboaf9moajxp28uv7dh5mnm';
-    const webhookManual = 'https://hook.eu2.make.com/8o543o9zm84h41gucdtvsromcjajbsrl';
+    const webhookManual = 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0';
 
     // VARIABLES GLOBALES
     const MAX_INTENTOS = 3;
@@ -1228,11 +1228,39 @@
       // Añadir a historial y enviar resultado exitoso
       historialErroresGPS.push(evento);
       
+      // CREAR RESUMEN TAMBIÉN PARA CASOS EXITOSOS (KPIs PARA NOTION)
+      const resumenExitoso = {
+        total_intentos: intentosGPS,
+        motivo_envio: 'CHECK_IN_EXITOSO',
+        tipos_errores: historialErroresGPS.filter(h => h.tipo !== 'EXITO').map(h => h.tipo),
+        resultado_final: 'EXITOSO',
+        timestamp_inicio: historialErroresGPS[0]?.timestamp,
+        timestamp_fin: evento.timestamp,
+        
+        // KPIs CALCULADOS PARA NOTION
+        duracion_total_segundos: Math.floor((new Date(evento.timestamp) - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
+        distancia_promedio: Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || validacion.distancia || 0,
+        accuracy_promedio: Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length),
+        variacion_distancia: historialErroresGPS.length > 1 ? Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) : 0,
+        
+        // KPIs CATEGORIZADOS PARA NOTION
+        eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
+        categoria_distancia: categorizarDistancia(validacion.distancia || 0),
+        precision_gps_categoria: categorizarPrecision(Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length)),
+        dispositivo_estable: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
+        plataforma_dispositivo: dispositivoCompleto.platform || 'unknown',
+        
+        // CONTEXTO FINAL
+        zona_final: zonaSeleccionada,
+        es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal
+      };
+      
       validacion.device_fingerprint = dispositivoCompleto;
       validacion.gps_accuracy = Math.round(accuracy);
       validacion.horario_turno = parametrosURL.horario_turno;
       validacion.fecha_evento = parametrosURL.fecha_evento;
       validacion.historial_completo = historialErroresGPS;
+      validacion.resumen_eventos = resumenExitoso; // AÑADIDO
       
       enviarResultadoCheckIn(lat, lng, accuracy, validacion);
     }
@@ -1301,16 +1329,30 @@
       }
     }
 
-    // FUNCIÓN MEJORADA PARA ENVIAR HISTORIAL COMPLETO
+    // FUNCIÓN MEJORADA PARA ENVIAR HISTORIAL COMPLETO (SIN DUPLICACIÓN)
     function enviarHistorialCompleto(motivo) {
       const resumen = {
         total_intentos: intentosGPS,
         motivo_envio: motivo,
         tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
-        primer_error: historialErroresGPS[0],
-        ultimo_error: historialErroresGPS[historialErroresGPS.length - 1],
+        resultado_final: 'FALLIDO',
         timestamp_inicio: historialErroresGPS[0]?.timestamp,
-        timestamp_fin: new Date().toISOString()
+        timestamp_fin: new Date().toISOString(),
+        
+        // AGREGADOS ÚTILES (no duplicados)
+        duracion_total_segundos: Math.floor((Date.now() - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
+        distancia_promedio: Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || 0,
+        accuracy_promedio: Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length),
+        variacion_distancia: Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) || 0,
+        
+        // KPIs CATEGORIZADOS PARA NOTION  
+        eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
+        categoria_distancia: categorizarDistancia(Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || 0),
+        precision_gps_categoria: categorizarPrecision(Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length)),
+        dispositivo_estable: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
+        plataforma_dispositivo: historialErroresGPS[0]?.dispositivo?.platform || 'unknown',
+        mismo_dispositivo: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
+        variacion_distancia: Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) || 0
       };
       
       const url = webhookManual +
@@ -1433,6 +1475,7 @@
                  `&fecha_check=${parametrosURL.fecha_evento}` +
                  `&hora_check=${encodeURIComponent(fechaActual.toTimeString().split(' ')[0])}` +
                  `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
+                 `&resumen_eventos=${encodeURIComponent(JSON.stringify(validacion.resumen_eventos || {}))}` +
                  `&timestamp=${Math.floor(Date.now()/1000)}`;
 
       console.log('🔗 URL completa del webhook:', url);
@@ -1632,6 +1675,23 @@
           window.location.href = 'about:blank';
         }, 500);
       }
+    }
+
+    // ========================================
+    // FUNCIONES DE CATEGORIZACIÓN PARA KPIs
+    // ========================================
+    
+    function categorizarDistancia(metros) {
+      if (metros < 100) return 'CERCA';
+      if (metros < 500) return 'MEDIA';  
+      if (metros < 1000) return 'LEJANA';
+      return 'MUY_LEJANA';
+    }
+    
+    function categorizarPrecision(accuracy) {
+      if (accuracy < 20) return 'ALTA';
+      if (accuracy < 50) return 'MEDIA';
+      return 'BAJA';
     }
   </script>
 </body>
