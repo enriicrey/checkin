@@ -360,7 +360,6 @@
       "Almacén": { lat: 40.4160, lng: -3.7040, radio: 500, tipo: "almacen", codigo: "ALM", emoji: "📦" },
       "Línea-C": { lat: 40.4190, lng: -3.7090, radio: 450, tipo: "produccion", codigo: "LC", emoji: "🏭" },
       "Línea-B": { lat: 40.4170, lng: -3.7070, radio: 450, tipo: "produccion", codigo: "LB", emoji: "🏭" },
-      //"Línea-A": { lat: 40.4140, lng: -3.7030, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
       "Oficinas": { lat: 40.4210, lng: -3.7110, radio: 300, tipo: "oficinas", codigo: "OFIC", emoji: "🏢" }
     };
 
@@ -371,7 +370,7 @@
     // VARIABLES GLOBALES
     const MAX_INTENTOS = 3;
     let parametrosURL = {};
-    let intentosGPS = 0;
+    let intentosGPS = 0; // CONTADOR UNIFICADO para todos los errores
     let ubicacionActual = null;
     let zonaSeleccionada = null;
     let motivoSeleccionado = null;
@@ -381,7 +380,7 @@
     let fechaValida = false;
     let horarioValido = false;
     let zonasAutorizadas = [];
-    let historialErroresGPS = []; // SOLO para registrar mensajes de error
+    let historialErroresGPS = []; // HISTORIAL COMPLETO para todos los eventos
 
     // INICIALIZACIÓN
     window.onload = function() {
@@ -789,182 +788,600 @@
       };
     }
 
-    async function iniciarCheckIn() {
-      const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
-      if (esZonaSecundaria && (!motivoSeleccionado || motivoSeleccionado === '')) {
-        mostrarError('Debes seleccionar un motivo para trabajar en zona secundaria');
-        return;
-      }
+    // ========================================
+    // FUNCIONES MEJORADAS DE MANEJO DE ERRORES
+    // ========================================
 
-      if (!fechaValida || !horarioValido) {
-        mostrarError('No tienes acceso válido para hacer check-in en este momento');
-        return;
-      }
+    // FUNCIÓN PARA ERRORES CRÍTICOS (supervisor inmediato)
+    async function manejarErrorCritico(tipo, datos, mensaje) {
+      console.log(`🚨 Error crítico detectado: ${tipo}`);
+      
+      // Registrar en historial
+      const evento = {
+        intento: intentosGPS + 1,
+        timestamp: new Date().toISOString(),
+        tipo: tipo,
+        detalle: mensaje,
+        datos_completos: datos,
+        nivel_criticidad: 'CRITICO'
+      };
+      
+      historialErroresGPS.push(evento);
+      
+      // Enviar inmediatamente al supervisor
+      enviarSupervisorInmediato(tipo, evento);
+      
+      // Bloquear interfaz completamente
+      bloquearInterfazCritica(mensaje);
+    }
 
-      // VALIDACIÓN CRÍTICA: Verificar límite de intentos ANTES de proceder
+    // FUNCIÓN PARA ERRORES NORMALES (con reintentos)
+    function manejarErrorConReintentos(tipo, evento, mensaje) {
+      console.log(`⚠️ Error normal detectado: ${tipo} (Intento ${intentosGPS}/${MAX_INTENTOS})`);
+      
+      // Añadir tipo y detalles al evento
+      evento.tipo = tipo;
+      evento.detalle = mensaje;
+      evento.nivel_criticidad = 'NORMAL';
+      
+      // Registrar en historial
+      historialErroresGPS.push(evento);
+      
+      // Verificar si se alcanzó el límite
       if (intentosGPS >= MAX_INTENTOS) {
-        mostrarLimiteAlcanzado();
-        return;
-      }
-
-      const tieneConexion = await validarConectividad();
-      if (!tieneConexion) {
-        mostrarError('Sin conexión a internet. Verifica tu conectividad.');
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        mostrarError("GPS no soportado en este dispositivo");
-        return;
-      }
-
-      // Incrementar contador DESPUÉS de validar que podemos proceder
-      intentosGPS++;
-      mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS}/${MAX_INTENTOS})`);
-
-      const button = document.getElementById('gps-button');
-      button.innerHTML = `Obteniendo GPS... (${intentosGPS}/${MAX_INTENTOS})`;
-      button.disabled = true;
-      button.classList.add('loading');
-
-      navigator.geolocation.getCurrentPosition(
-        exitoGPS, 
-        errorGPS, 
-        { 
-          enableHighAccuracy: true, 
-          timeout: 15000,
-          maximumAge: 60000
-        }
-      );
-    }
-
-    function exitoGPS(position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-
-      ubicacionActual = { lat, lng, accuracy };
-
-      mostrarEstado('Ubicación obtenida. Validando zona asignada...');
-
-      // VALIDACIÓN 1: Ubicación fuera de España
-      if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
-        const errorMsg = `Ubicación fuera de España: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        historialErroresGPS.push(errorMsg);
-        
-        mostrarError('❌ Ubicación fuera de España detectada');
-        resetearBoton();
-        return;
-      }
-
-      // VALIDACIÓN 2: Precisión sospechosa
-      if (accuracy < 5) {
-        const errorMsg = `Precisión GPS sospechosamente alta: ${accuracy}m`;
-        historialErroresGPS.push(errorMsg);
-        
-        if (!confirm(`⚠️ GPS sospechosamente preciso (${accuracy}m). Esto puede indicar ubicación falsa. ¿Continuar?`)) {
-          resetearBoton();
-          return;
-        }
-      }
-
-      // VALIDACIÓN 3: Precisión baja
-      if (accuracy > 100) {
-        const errorMsg = `GPS poco preciso: ${Math.round(accuracy)}m`;
-        historialErroresGPS.push(errorMsg);
-        
-        if (!confirm(`⚠️ GPS poco preciso (${Math.round(accuracy)}m). ¿Continuar con check-in?`)) {
-          resetearBoton();
-          return;
-        }
-      }
-
-      // Si llegamos aquí, procesar check-in normal
-      const validacion = validarUbicacionConZonasSecundarias(lat, lng);
-      
-      validacion.device_fingerprint = deviceFingerprint;
-      validacion.gps_accuracy = Math.round(accuracy);
-      validacion.horario_turno = parametrosURL.horario_turno;
-      validacion.fecha_evento = parametrosURL.fecha_evento;
-      
-      enviarResultadoCheckIn(lat, lng, accuracy, validacion);
-    }
-
-    function errorGPS(error) {
-      let errorMsg = '';
-      let puedeReintentar = intentosGPS < MAX_INTENTOS;
-      
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          errorMsg = 'Permisos de ubicación denegados';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          errorMsg = 'Ubicación no disponible';
-          break;
-        case error.TIMEOUT:
-          errorMsg = 'Tiempo agotado obteniendo GPS';
-          break;
-        default:
-          errorMsg = `Error desconocido obteniendo ubicación (código: ${error.code})`;
-          break;
-      }
-
-      // SOLO registrar error en historial, NO enviar
-      historialErroresGPS.push(errorMsg);
-
-      if (puedeReintentar) {
-        mostrarErrorConReintento(errorMsg);
-        resetearBoton();
+        // Enviar todo el historial al supervisor
+        enviarHistorialCompleto('LIMITE_ALCANZADO');
+        bloquearInterfazLimite();
       } else {
-        // SOLO al alcanzar límite, enviar historial completo
-        mostrarLimiteAlcanzado();
+        // Permitir reintento
+        mostrarErrorConOpcionReintento(mensaje, tipo);
+        resetearBotonParaReintento();
       }
     }
 
-    function mostrarErrorConReintento(mensaje) {
-      document.getElementById('status-message').innerHTML = `
-        <div class="error-box">
-          ❌ ${mensaje}<br><br>
-          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
-          💡 Puedes intentar de nuevo<br><br>
-          📞 <strong>Si necesitas ayuda:</strong><br>
-          <a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>
-        </div>`;
+    // ENVÍO INMEDIATO AL SUPERVISOR (casos críticos)
+    function enviarSupervisorInmediato(tipo, evento) {
+      const url = webhookManual + 
+                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                 `&evento_critico=${tipo}` +
+                 `&timestamp=${Date.now()}` +
+                 `&coordenadas=${evento.datos_completos?.lat || 'N/A'},${evento.datos_completos?.lng || 'N/A'}` +
+                 `&accuracy=${evento.datos_completos?.accuracy || 'N/A'}` +
+                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                 `&zona_intentada=${encodeURIComponent(zonaSeleccionada || 'N/A')}` +
+                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                 `&detalle_error=${encodeURIComponent(evento.detalle)}` +
+                 `&dispositivo_ip=${evento.datos_completos?.dispositivo?.ip_publica || 'N/A'}` +
+                 `&dispositivo_timezone=${evento.datos_completos?.dispositivo?.timezone || 'N/A'}` +
+                 `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
+                 `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}`;
+      
+      fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Supervisor notificado inmediatamente'))
+        .catch(() => console.log('❌ Error notificando supervisor'));
     }
 
-    function mostrarLimiteAlcanzado() {
+    // BLOQUEO DE INTERFAZ PARA CASOS CRÍTICOS
+    function bloquearInterfazCritica(mensaje) {
+      // Mostrar mensaje crítico
       document.getElementById('status-message').innerHTML = `
         <div class="error-box">
-          ❌ <strong>Máximo de intentos GPS alcanzado (${MAX_INTENTOS})</strong><br><br>
-          📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
-          🔔 Te contactará para autorizar check-in manual<br><br>
-          📞 <strong>Contacta directamente:</strong><br>
+          🚨 <strong>Error crítico detectado</strong><br><br>
+          ${mensaje}<br><br>
+          📧 <strong>Supervisor notificado automáticamente</strong><br>
+          🔔 Te contactará para revisar la situación<br><br>
+          📞 <strong>Contacto directo:</strong><br>
           <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
-          💡 <strong>Posibles soluciones:</strong><br>
-          • Verificar permisos de ubicación en navegador<br>
-          • Salir al exterior para mejor señal GPS<br>
-          • Reiniciar navegador y recargar página<br>
-          • Usar otro dispositivo si persiste el problema
+          ⚠️ <strong>Este tipo de error requiere validación manual inmediata</strong>
         </div>`;
         
-      // Deshabilitar botón GPS permanentemente
-      const button = document.getElementById('gps-button');
-      button.disabled = true;
-      button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
-      button.style.background = '#dc3545';
-      button.style.opacity = '0.7';
-      button.classList.remove('loading');
+      // Deshabilitar todos los botones permanentemente
+      const gpsButton = document.getElementById('gps-button');
+      gpsButton.disabled = true;
+      gpsButton.innerHTML = '🚨 ERROR CRÍTICO DETECTADO';
+      gpsButton.style.background = '#dc3545';
+      gpsButton.style.opacity = '0.7';
+      gpsButton.classList.remove('loading');
       
-      // Deshabilitar botón emergencia también
       const emergencyButton = document.getElementById('emergency-button');
       emergencyButton.disabled = true;
       emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
       emergencyButton.style.background = '#6c757d';
       emergencyButton.style.opacity = '0.7';
-      
-      // Enviar notificación al supervisor por límite alcanzado
-      enviarNotificacionSupervisor('MAX_ATTEMPTS_REACHED', 'GPS falló múltiples veces');
     }
+
+    // BLOQUEO DE INTERFAZ POR LÍMITE ALCANZADO
+    function bloquearInterfazLimite() {
+      document.getElementById('status-message').innerHTML = `
+        <div class="error-box">
+          ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
+          📧 <strong>Historial completo enviado al supervisor</strong><br>
+          🔔 Te contactará para procesar check-in manual<br><br>
+          📞 <strong>Contacta directamente:</strong><br>
+          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
+          💡 <strong>Posibles soluciones:</strong><br>
+          • Verificar permisos de ubicación<br>
+          • Salir al exterior para mejor señal GPS<br>
+          • Reiniciar navegador si persiste
+        </div>`;
+        
+      // Deshabilitar botones
+      const gpsButton = document.getElementById('gps-button');
+      gpsButton.disabled = true;
+      gpsButton.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+      gpsButton.style.background = '#dc3545';
+      gpsButton.style.opacity = '0.7';
+      gpsButton.classList.remove('loading');
+      
+      const emergencyButton = document.getElementById('emergency-button');
+      emergencyButton.disabled = true;
+      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
+      emergencyButton.style.background = '#6c757d';
+      emergencyButton.style.opacity = '0.7';
+    }
+
+    // MOSTRAR ERROR CON OPCIÓN DE REINTENTO
+    function mostrarErrorConOpcionReintento(mensaje, tipo) {
+      const sugerencias = {
+        'GPS_IMPRECISO': 'Sal al exterior o busca zona con mejor cobertura GPS',
+        'FUERA_ZONA': 'Desplázate hacia el centro de tu zona asignada',
+        'ERROR_TECNICO_GPS': 'Verifica permisos de ubicación en el navegador'
+      };
+      
+      document.getElementById('status-message').innerHTML = `
+        <div class="warning-box">
+          ⚠️ ${mensaje}<br><br>
+          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
+          📊 <em>Evento registrado para auditoría</em><br><br>
+          💡 <strong>Sugerencia:</strong> ${sugerencias[tipo] || 'Reintenta tras verificar las condiciones'}<br><br>
+          📞 <strong>Si necesitas ayuda:</strong> Contacta a tu supervisor
+        </div>`;
+    }
+
+    // RESETEAR BOTÓN PARA PERMITIR REINTENTO
+    function resetearBotonParaReintento() {
+      if (intentosGPS < MAX_INTENTOS) {
+        const button = document.getElementById('gps-button');
+        button.innerHTML = `REINTENTO ${intentosGPS + 1}/${MAX_INTENTOS} - OBTENER UBICACIÓN`;
+        button.disabled = false;
+        button.classList.remove('loading');
+        button.style.background = '#f39c12'; // Color naranja para reintentos
+        
+        // Validar que la selección siga siendo correcta
+        validarSeleccionCompleta();
+      }
+    }
+
+    // ========================================
+    // FUNCIONES AUXILIARES MEJORADAS
+    // ========================================
+
+    // FUNCIÓN MEJORADA PARA OBTENER DATOS DEL DISPOSITIVO
+    async function obtenerDatosDispositivoMejorado() {
+        const dispositivo = {
+            // Datos básicos existentes
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            
+            // NUEVOS: Datos de red y ubicación
+            ip_publica: await obtenerIPPublica().catch(() => 'no_disponible'),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timezone_offset: new Date().getTimezoneOffset(),
+            
+            // NUEVOS: Capacidades del dispositivo  
+            screen_resolution: `${screen.width}x${screen.height}`,
+            color_depth: screen.colorDepth,
+            pixel_ratio: window.devicePixelRatio,
+            
+            // NUEVOS: Detección de entorno
+            touch_support: 'ontouchstart' in window,
+            webgl_info: obtenerWebGLInfo(),
+            
+            // NUEVOS: Detección anti-bot
+            webdriver: navigator.webdriver || false,
+            automation_indicators: detectarAutomation(),
+            
+            // Metadatos
+            timestamp_dispositivo: Date.now(),
+            connection_type: navigator.connection?.effectiveType || 'unknown'
+        };
+        
+        return dispositivo;
+    }
+
+    // OBTENER IP PÚBLICA
+    async function obtenerIPPublica() {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json', {
+                timeout: 5000
+            });
+            const data = await response.json();
+            return data.ip;
+        } catch (error) {
+            console.log('No se pudo obtener IP pública:', error);
+            return 'no_disponible';
+        }
+    }
+
+    // INFORMACIÓN WebGL
+    function obtenerWebGLInfo() {
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) return 'no_disponible';
+            
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            return {
+                vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'unknown',
+                renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown'
+            };
+        } catch (error) {
+            return 'error';
+        }
+    }
+
+    // DETECTAR AUTOMATION (bots, scripts)
+    function detectarAutomation() {
+        const indicadores = [];
+        
+        // Selenium
+        if (window.navigator.webdriver) {
+            indicadores.push('SELENIUM_WEBDRIVER');
+        }
+        
+        // Phantom JS
+        if (window.callPhantom || window._phantom) {
+            indicadores.push('PHANTOM_JS');
+        }
+        
+        // Headless Chrome
+        if (navigator.userAgent.includes('HeadlessChrome')) {
+            indicadores.push('HEADLESS_CHROME');
+        }
+        
+        // Propiedades anómalas
+        if (navigator.plugins.length === 0 && !navigator.userAgent.includes('Mobile')) {
+            indicadores.push('SIN_PLUGINS_DESKTOP');
+        }
+        
+        return indicadores;
+    }
+
+    // ANALIZAR COHERENCIA DEL DISPOSITIVO
+    async function analizarCoherenciaDispositivo(coords, dispositivo) {
+        const anomalias = [];
+        
+        // 1. Timezone vs GPS
+        if (dispositivo.timezone && !dispositivo.timezone.includes('Europe') && 
+            coords.lat > 35 && coords.lat < 45 && coords.lng > -10 && coords.lng < 5) {
+            anomalias.push('TIMEZONE_GPS_INCOHERENTE');
+        }
+        
+        // 2. Indicadores de automation
+        if (dispositivo.automation_indicators.length > 0) {
+            anomalias.push('AUTOMATION_DETECTADA');
+        }
+        
+        // 3. WebGL sospechoso
+        if (dispositivo.webgl_info.renderer && 
+            (dispositivo.webgl_info.renderer.includes('SwiftShader') || 
+             dispositivo.webgl_info.renderer.includes('VMware'))) {
+            anomalias.push('WEBGL_EMULADOR');
+        }
+        
+        // 4. Resolución típica de emulador
+        if (dispositivo.screen_resolution === '393x851' || // Android emulator
+            dispositivo.screen_resolution === '375x667' || // iPhone emulator
+            dispositivo.screen_resolution === '1920x1080' && dispositivo.pixel_ratio === 1) {
+            anomalias.push('RESOLUCION_EMULADOR_TIPICA');
+        }
+        
+        // 5. User Agent vs capacidades
+        if (navigator.userAgent.includes('Mobile') && !dispositivo.touch_support) {
+            anomalias.push('MOBILE_SIN_TOUCH');
+        }
+        
+        return anomalias;
+    }
+
+    // CALCULAR DISTANCIA MÍNIMA AL BORDE DE ESPAÑA
+    function calcularDistanciaMinimaBordeEspana(lat, lng) {
+        // Coordenadas aproximadas de los bordes de España
+        const bordeEspana = {
+            norte: 43.79,
+            sur: 35.95,
+            este: 4.32,
+            oeste: -9.30
+        };
+        
+        let distanciaMinima = Infinity;
+        
+        // Distancia a cada borde
+        if (lat > bordeEspana.norte) {
+            distanciaMinima = Math.min(distanciaMinima, 
+                calcularDistancia(lat, lng, bordeEspana.norte, lng));
+        }
+        if (lat < bordeEspana.sur) {
+            distanciaMinima = Math.min(distanciaMinima, 
+                calcularDistancia(lat, lng, bordeEspana.sur, lng));
+        }
+        if (lng > bordeEspana.este) {
+            distanciaMinima = Math.min(distanciaMinima, 
+                calcularDistancia(lat, lng, lat, bordeEspana.este));
+        }
+        if (lng < bordeEspana.oeste) {
+            distanciaMinima = Math.min(distanciaMinima, 
+                calcularDistancia(lat, lng, lat, bordeEspana.oeste));
+        }
+        
+        return Math.round(distanciaMinima);
+    }
+
+    // ========================================
+    // FUNCIÓN exitoGPS MEJORADA
+    // ========================================
+    
+    async function exitoGPS(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+      const timestamp = position.timestamp || Date.now();
+
+      // VALIDACIONES BÁSICAS PRIMERO
+      
+      // 1. Coordenadas válidas
+      if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+        return manejarErrorCritico('COORDENADAS_INVALIDAS', {lat, lng, accuracy}, 'Coordenadas GPS inválidas detectadas');
+      }
+      
+      // 2. Coordenadas nulas (0,0) - Error común
+      if (lat === 0 && lng === 0) {
+        return manejarErrorCritico('COORDENADAS_NULAS', {lat, lng, accuracy}, 'GPS devolvió coordenadas nulas');
+      }
+      
+      // 3. Coordenadas fuera de rango mundial
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return manejarErrorCritico('COORDENADAS_FUERA_RANGO', {lat, lng, accuracy}, 'Coordenadas fuera del rango terrestre');
+      }
+
+      // OBTENER DATOS DEL DISPOSITIVO
+      const dispositivoCompleto = await obtenerDatosDispositivoMejorado();
+      const anomaliasDispositivo = await analizarCoherenciaDispositivo({lat, lng}, dispositivoCompleto);
+
+      // VALIDACIONES DE UBICACIÓN - CASOS CRÍTICOS (van directo al supervisor)
+      
+      // 4. Fuera de España - CRÍTICO
+      if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
+        return manejarErrorCritico('FUERA_ESPANA', {
+          lat, lng, accuracy, 
+          dispositivo: dispositivoCompleto,
+          anomalias: anomaliasDispositivo,
+          distancia_borde: calcularDistanciaMinimaBordeEspana(lat, lng)
+        }, 'Ubicación fuera de España detectada');
+      }
+      
+      // 5. GPS sospechosamente preciso - CRÍTICO
+      if (accuracy < 5) {
+        return manejarErrorCritico('GPS_SOSPECHOSO', {
+          lat, lng, accuracy,
+          dispositivo: dispositivoCompleto,
+          anomalias: anomaliasDispositivo
+        }, `GPS anormalmente preciso: ${accuracy}m`);
+      }
+      
+      // 6. Múltiples anomalías del dispositivo - CRÍTICO
+      if (anomaliasDispositivo.length >= 2) {
+        return manejarErrorCritico('DISPOSITIVO_SOSPECHOSO', {
+          lat, lng, accuracy,
+          dispositivo: dispositivoCompleto,
+          anomalias: anomaliasDispositivo
+        }, 'Dispositivo con múltiples patrones sospechosos');
+      }
+
+      // CASOS NORMALES - Permiten reintentos hasta límite
+      
+      // Incrementar contador unificado
+      intentosGPS++;
+      ubicacionActual = { lat, lng, accuracy };
+
+      // Crear registro del evento
+      const evento = {
+        intento: intentosGPS,
+        timestamp: new Date().toISOString(),
+        lat, lng, accuracy,
+        dispositivo: dispositivoCompleto,
+        anomalias: anomaliasDispositivo
+      };
+
+      // 7. GPS muy impreciso - NORMAL (reintentos)
+      if (accuracy > 100) {
+        return manejarErrorConReintentos('GPS_IMPRECISO', evento, `GPS poco preciso: ${Math.round(accuracy)}m`);
+      }
+
+      // 8. Validación de zona asignada - NORMAL (reintentos)
+      const validacion = validarUbicacionConZonasSecundarias(lat, lng);
+      
+      if (!validacion.valido) {
+        evento.distancia_zona = validacion.distancia;
+        evento.zona_intentada = zonaSeleccionada;
+        return manejarErrorConReintentos('FUERA_ZONA', evento, `Fuera de zona ${zonaSeleccionada}: ${validacion.distancia}m`);
+      }
+
+      // ✅ ÉXITO - Todo validado correctamente
+      evento.tipo = 'EXITO';
+      evento.zona_final = zonaSeleccionada;
+      evento.es_zona_secundaria = zonaSeleccionada !== parametrosURL.zona_principal;
+      evento.motivo_zona_secundaria = motivoSeleccionado;
+      
+      // Añadir a historial y enviar resultado exitoso
+      historialErroresGPS.push(evento);
+      
+      validacion.device_fingerprint = dispositivoCompleto;
+      validacion.gps_accuracy = Math.round(accuracy);
+      validacion.horario_turno = parametrosURL.horario_turno;
+      validacion.fecha_evento = parametrosURL.fecha_evento;
+      validacion.historial_completo = historialErroresGPS;
+      
+      enviarResultadoCheckIn(lat, lng, accuracy, validacion);
+    }
+
+    // ========================================
+    // FUNCIÓN errorGPS MEJORADA
+    // ========================================
+
+    function errorGPS(error) {
+      // INCREMENTAR contador unificado
+      intentosGPS++;
+      
+      let tipoError = '';
+      let mensajeError = '';
+      let esCritico = false;
+      
+      // Clasificar tipo de error técnico
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          tipoError = 'PERMISOS_GPS_DENEGADOS';
+          mensajeError = 'Permisos de ubicación denegados por el usuario';
+          esCritico = false; // Puede solucionarse
+          break;
+          
+        case error.POSITION_UNAVAILABLE:
+          tipoError = 'GPS_NO_DISPONIBLE';
+          mensajeError = 'Servicio GPS no disponible en este dispositivo';
+          esCritico = true; // Problema hardware/software grave
+          break;
+          
+        case error.TIMEOUT:
+          tipoError = 'TIMEOUT_GPS';
+          mensajeError = 'Tiempo agotado obteniendo ubicación GPS';
+          esCritico = false; // Puede ser temporal
+          break;
+          
+        default:
+          tipoError = 'ERROR_GPS_DESCONOCIDO';
+          mensajeError = `Error GPS desconocido (código: ${error.code})`;
+          esCritico = true; // Error no identificado es sospechoso
+          break;
+      }
+      
+      // Crear evento del error
+      const evento = {
+        intento: intentosGPS,
+        timestamp: new Date().toISOString(),
+        tipo: tipoError,
+        detalle: mensajeError,
+        codigo_error: error.code,
+        mensaje_navegador: error.message,
+        nivel_criticidad: esCritico ? 'CRITICO' : 'NORMAL'
+      };
+      
+      console.log(`${esCritico ? '🚨' : '⚠️'} Error GPS: ${tipoError} (Intento ${intentosGPS}/${MAX_INTENTOS})`);
+      
+      // MANEJO SEGÚN CRITICIDAD
+      if (esCritico) {
+        // Errores críticos van directo al supervisor
+        historialErroresGPS.push(evento);
+        enviarSupervisorInmediato(tipoError, evento);
+        bloquearInterfazCritica(mensajeError);
+      } else {
+        // Errores normales siguen lógica de reintentos
+        manejarErrorConReintentos(tipoError, evento, mensajeError);
+      }
+    }
+
+    // FUNCIÓN MEJORADA PARA ENVIAR HISTORIAL COMPLETO
+    function enviarHistorialCompleto(motivo) {
+      const resumen = {
+        total_intentos: intentosGPS,
+        motivo_envio: motivo,
+        tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
+        primer_error: historialErroresGPS[0],
+        ultimo_error: historialErroresGPS[historialErroresGPS.length - 1],
+        timestamp_inicio: historialErroresGPS[0]?.timestamp,
+        timestamp_fin: new Date().toISOString()
+      };
+      
+      const url = webhookManual +
+                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                 `&zona_intentada=${encodeURIComponent(zonaSeleccionada)}` +
+                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                 `&motivo_envio=${motivo}` +
+                 `&total_intentos=${intentosGPS}` +
+                 `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
+                 `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+                 `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
+                 `&timestamp=${Math.floor(Date.now()/1000)}`;
+      
+      fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Historial completo enviado al supervisor'))
+        .catch(() => console.log('❌ Error enviando historial al supervisor'));
+    }
+
+    // ========================================
+    // FUNCIONES ACTUALIZADAS PARA INICIALIZACIÓN
+    // ========================================
+
+    // ACTUALIZAR LA FUNCIÓN iniciarCheckIn PARA USAR LA NUEVA LÓGICA
+    function iniciarCheckIn() {
+        const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
+        if (esZonaSecundaria && (!motivoSeleccionado || motivoSeleccionado === '')) {
+            mostrarError('Debes seleccionar un motivo para trabajar en zona secundaria');
+            return;
+        }
+
+        if (!fechaValida || !horarioValido) {
+            mostrarError('No tienes acceso válido para hacer check-in en este momento');
+            return;
+        }
+
+        // VALIDACIÓN CRÍTICA: Verificar límite de intentos ANTES de proceder
+        if (intentosGPS >= MAX_INTENTOS) {
+            bloquearInterfazLimite();
+            return;
+        }
+
+        // Validar conectividad
+        validarConectividad().then(tieneConexion => {
+            if (!tieneConexion) {
+                mostrarError('Sin conexión a internet. Verifica tu conectividad.');
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                manejarErrorCritico('GEOLOCATION_NO_SOPORTADO', {}, 'GPS no soportado en este dispositivo');
+                return;
+            }
+
+            // Mostrar estado de progreso
+            mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS + 1}/${MAX_INTENTOS})`);
+
+            const button = document.getElementById('gps-button');
+            button.innerHTML = `Obteniendo GPS... (${intentosGPS + 1}/${MAX_INTENTOS})`;
+            button.disabled = true;
+            button.classList.add('loading');
+
+            // Obtener posición GPS
+            navigator.geolocation.getCurrentPosition(
+                exitoGPS,  // Usar la nueva función exitoGPS mejorada
+                errorGPS,  // Usar la nueva función errorGPS mejorada
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 15000,
+                    maximumAge: 60000
+                }
+            );
+        });
+    }
+
+    // ========================================
+    // FUNCIONES ORIGINALES MANTENIDAS
+    // ========================================
 
     async function enviarResultadoCheckIn(lat, lng, accuracy, validacion) {
       const tieneConexion = await validarConectividad();
@@ -994,12 +1411,13 @@
                  `&metodo_check_in=${encodeURIComponent(validacion.metodo_checkin || '')}` +
                  `&observaciones_sistema=${encodeURIComponent(validacion.observaciones_sistema || '')}` +
                  `&device_type=${encodeURIComponent(getDeviceType())}` +
-                 `&user_agent=${encodeURIComponent(deviceFingerprint.userAgent)}` +
-                 `&device_risk_level=${deviceFingerprint.riskLevel}` +
+                 `&user_agent=${encodeURIComponent(validacion.device_fingerprint?.userAgent || '')}` +
+                 `&device_risk_level=${validacion.device_fingerprint?.riskLevel || ''}` +
                  `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` +
                  `&validacion_codigo=${validacion.codigo}` +
                  `&fecha_check=${parametrosURL.fecha_evento}` +
                  `&hora_check=${encodeURIComponent(fechaActual.toTimeString().split(' ')[0])}` +
+                 `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
                  `&timestamp=${Math.floor(Date.now()/1000)}`;
 
       if (validacion.valido) {
@@ -1072,76 +1490,6 @@
       gpsButton.disabled = true;
       gpsButton.innerHTML = 'SUPERVISOR NOTIFICADO';
       gpsButton.style.background = '#6c757d';
-    }
-
-    function resetearBoton() {
-      // Solo resetear si no se ha alcanzado el límite de intentos
-      if (intentosGPS < MAX_INTENTOS) {
-        const button = document.getElementById('gps-button');
-        button.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
-        button.disabled = false;
-        button.classList.remove('loading');
-        button.style.background = '';
-        
-        validarSeleccionCompleta();
-      }
-    }
-
-    // Eliminar función no usada
-    function mostrarErrorConReintento(mensaje) {
-      document.getElementById('status-message').innerHTML = `
-        <div class="error-box">
-          ❌ ${mensaje}<br><br>
-          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
-          💡 Puedes intentar de nuevo<br><br>
-          📞 <strong>Si necesitas ayuda, usa el botón "CONTACTAR SUPERVISOR"</strong>
-        </div>`;
-    }
-
-    function mostrarLimiteAlcanzado() {
-      document.getElementById('status-message').innerHTML = `
-        <div class="error-box">
-          ❌ <strong>Máximo de intentos GPS alcanzado (${MAX_INTENTOS})</strong><br><br>
-          📧 <strong>Supervisor notificado con historial de errores</strong><br>
-          🔔 Te contactará para procesar check-in manual<br><br>
-          📞 <strong>Contacta directamente:</strong><br>
-          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a>
-        </div>`;
-        
-      // Deshabilitar botones
-      const button = document.getElementById('gps-button');
-      button.disabled = true;
-      button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
-      button.style.background = '#dc3545';
-      button.style.opacity = '0.7';
-      button.classList.remove('loading');
-      
-      const emergencyButton = document.getElementById('emergency-button');
-      emergencyButton.disabled = true;
-      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
-      emergencyButton.style.background = '#6c757d';
-      emergencyButton.style.opacity = '0.7';
-      
-      // Enviar historial completo
-      enviarHistorialCompleto();
-    }
-
-    function enviarHistorialCompleto() {
-      const url = webhookManual +
-                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
-                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                 `&error_message=LIMITE_INTENTOS_ALCANZADO` +
-                 `&total_intentos=${intentosGPS}` +
-                 `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
-                 `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
-                 `&timestamp=${Math.floor(Date.now()/1000)}`;
-      
-      fetch(url, {method: 'GET'})
-        .then(() => console.log('✅ Historial completo enviado'))
-        .catch(() => console.log('❌ Error enviando historial'));
     }
 
     function calcularDistancia(lat1, lon1, lat2, lon2) {
