@@ -148,9 +148,14 @@
       border-color: #ccc;
       background: #f8f9fa;
     }
-    .motivo-option[data-motivo=""]:hover {
-      border-color: #dc3545;
-      background: #f8d7da;
+    .motivo-selected-display {
+      border: 2px solid #007bff !important;
+      background: #e3f2fd !important;
+      font-weight: bold;
+    }
+    .motivo-selected-display .motivo-placeholder {
+      color: #0056b3;
+      font-weight: bold;
     }
     
     .button { 
@@ -242,22 +247,22 @@
     <div id="checkin-content">
       <div class="info-box">
         <div class="info-item">
-          <strong>Técnico:</strong> <span id="tecnico-nombre">Cargando...</span>
+          <strong>👤 Técnico:</strong> <span id="tecnico-nombre">Cargando...</span>
         </div>
         <div class="info-item">
-          <strong>Zona Principal:</strong> <span id="zona-principal">Cargando...</span>
+          <strong>🎯 Zona Principal:</strong> <span id="zona-principal">Cargando...</span>
         </div>
         <div class="info-item">
-          <strong>Zonas Secundarias:</strong> <span id="zonas-secundarias">Verificando...</span>
+          <strong>📍 Zonas Secundarias:</strong> <span id="zonas-secundarias">Verificando...</span>
         </div>
         <div class="info-item">
-          <strong>Turno:</strong> <span id="turno-info">Cargando...</span>
+          <strong>💼 Turno de trabajo:</strong> <span id="turno-info">Cargando...</span>
         </div>
         <div class="info-item">
-          <strong>Horario:</strong> <span id="horario-turno">Cargando...</span>
+          <strong>⏰ Horario Check-in:</strong> <span id="horario-turno">Cargando...</span>
         </div>
         <div class="info-item">
-          <strong>Hora:</strong> <span id="hora-actual">--:--:--</span>
+          <strong>🕒 Hora actual:</strong> <span id="hora-actual">--:--:--</span>
         </div>
       </div>
 
@@ -275,7 +280,7 @@
 
       <!-- Selector de Zona de Trabajo -->
       <div class="zona-selector" id="zona-selector" style="display:none;">
-        <h4>Zona de trabajo para este check-in:</h4>
+        <h4>🎯 Zona de trabajo para este check-in:</h4>
         <div class="zona-info">
           <small>Por defecto: Zona principal según calendario. Solo puedes seleccionar zonas autorizadas para ti.</small>
         </div>
@@ -284,26 +289,26 @@
 
       <!-- Selector de Motivo -->
       <div class="motivo-selector" id="motivo-selector">
-        <h4>Motivo del trabajo en zona secundaria: <span class="required">*</span></h4>
+        <h4>📝 Motivo del trabajo en zona secundaria: <span class="required">*</span></h4>
         <div class="motivo-info">
           <small>Requerido cuando trabajas fuera de tu zona principal asignada</small>
         </div>
         <div id="motivo-options">
-          <div class="motivo-option" data-motivo="">
-            <div class="motivo-placeholder">Selecciona un motivo válido</div>
+          <div class="motivo-option motivo-selected-display" data-motivo="" id="motivo-display">
+            <div class="motivo-placeholder">👆 Selecciona un motivo válido</div>
           </div>
-          <div class="motivo-option" data-motivo="incidencia">Atendiendo incidencia</div>
-          <div class="motivo-option" data-motivo="mantenimiento">Mantenimiento programado</div>
-          <div class="motivo-option" data-motivo="mantenimiento_urgencia">Mantenimiento de urgencia</div>
-          <div class="motivo-option" data-motivo="apoyo">Apoyo a otro técnico</div>
-          <div class="motivo-option" data-motivo="apoyo_interzonal">Apoyo interzonal por carga de trabajo</div>
-          <div class="motivo-option" data-motivo="ausencia_reemplazo">Ausencia de un compañero reemplazado</div>
-          <div class="motivo-option" data-motivo="traslado">Traslado de material/equipo</div>
-          <div class="motivo-option" data-motivo="reunion">Reunión de trabajo</div>
-          <div class="motivo-option" data-motivo="supervision">Supervisión/inspección</div>
-          <div class="motivo-option" data-motivo="planificacion_especial">Cambio de planificación (turno especial)</div>
-          <div class="motivo-option" data-motivo="emergencia">Situación de emergencia</div>
-          <div class="motivo-option" data-motivo="otro">Otro motivo</div>
+          <div class="motivo-option" data-motivo="incidencia">🚨 Atendiendo incidencia</div>
+          <div class="motivo-option" data-motivo="mantenimiento">🔧 Mantenimiento programado</div>
+          <div class="motivo-option" data-motivo="mantenimiento_urgencia">⚡ Mantenimiento de urgencia</div>
+          <div class="motivo-option" data-motivo="apoyo">🤝 Apoyo a otro técnico</div>
+          <div class="motivo-option" data-motivo="apoyo_interzonal">🔄 Apoyo interzonal por carga de trabajo</div>
+          <div class="motivo-option" data-motivo="ausencia_reemplazo">👥 Ausencia de un compañero reemplazado</div>
+          <div class="motivo-option" data-motivo="traslado">🚚 Traslado de material/equipo</div>
+          <div class="motivo-option" data-motivo="reunion">💼 Reunión de trabajo</div>
+          <div class="motivo-option" data-motivo="supervision">👔 Supervisión/inspección</div>
+          <div class="motivo-option" data-motivo="planificacion_especial">📋 Cambio de planificación (turno especial)</div>
+          <div class="motivo-option" data-motivo="emergencia">🚨 Situación de emergencia</div>
+          <div class="motivo-option" data-motivo="otro">❓ Otro motivo</div>
         </div>
       </div>
 
@@ -344,13 +349,18 @@
   </div>
 
   <script>
-    // CONFIGURACIÓN DE ZONAS
+    // CONFIGURACIÓN DE ZONAS CON EMOJIS
     const zonasConfiguracion = {
-      "Almacén": { lat: 40.4168, lng: -3.7038, radio: 500, tipo: "urbana", codigo: "ZN01" },
-      "Línea-A": { lat: 37.3826, lng: -5.9963, radio: 600, tipo: "industrial", codigo: "ZS01" },
-      "Línea-B": { lat: 39.4699, lng: -0.3763, radio: 400, tipo: "comercial", codigo: "ZE01" },
-      "Línea-C": { lat: 43.2630, lng: -2.9350, radio: 700, tipo: "logistica", codigo: "ZO01" },
-      "Transporte": { lat: 40.4168, lng: -3.7038, radio: 300, tipo: "oficinas", codigo: "ZC01" }
+      "Todas": { lat: 40.4168, lng: -3.7038, radio: 1000, tipo: "general", codigo: "ALL", emoji: "🌟" },
+      "Utilities": { lat: 40.4200, lng: -3.7100, radio: 600, tipo: "utilities", codigo: "UTIL", emoji: "⚡" },
+      "Laboratorio": { lat: 40.4150, lng: -3.7050, radio: 400, tipo: "laboratorio", codigo: "LAB", emoji: "🔬" },
+      "Mantenimiento": { lat: 40.4180, lng: -3.7080, radio: 700, tipo: "mantenimiento", codigo: "MANT", emoji: "🔧" },
+      "Transporte": { lat: 40.4220, lng: -3.7120, radio: 800, tipo: "transporte", codigo: "TRANS", emoji: "🚚" },
+      "Almacén": { lat: 40.4160, lng: -3.7040, radio: 500, tipo: "almacen", codigo: "ALM", emoji: "📦" },
+      "Línea-C": { lat: 40.4190, lng: -3.7090, radio: 450, tipo: "produccion", codigo: "LC", emoji: "🏭" },
+      "Línea-B": { lat: 40.4170, lng: -3.7070, radio: 450, tipo: "produccion", codigo: "LB", emoji: "🏭" },
+      "Línea-A": { lat: 40.4140, lng: -3.7030, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
+      "Oficinas": { lat: 40.4210, lng: -3.7110, radio: 300, tipo: "oficinas", codigo: "OFIC", emoji: "🏢" }
     };
 
     // WEBHOOKS PARA MAKE
@@ -509,7 +519,9 @@
         if (dentroHorario) {
           horarioValido = true;
           alertDiv.className = 'horario-alert horario-permitido';
-          mensajeDiv.innerHTML = `✅ <strong>Horario válido</strong><br>Turno: ${parametrosURL.horario_turno} | Hora actual: ${ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`;
+          mensajeDiv.innerHTML = `✅ <strong>Horario Check-in válido</strong><br>
+            Ventana check-in: ${parametrosURL.horario_turno} | Hora actual: ${ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}<br>
+            <small>💡 Este es el horario para hacer check-in, antes del inicio de tu turno de trabajo</small>`;
           return true;
         } else {
           horarioValido = false;
@@ -525,18 +537,19 @@
           const horasRestantes = Math.floor(minutosHastaTurno / 60);
           const minRestantes = minutosHastaTurno % 60;
           
-          mensajeDiv.innerHTML = `⏰ <strong>Fuera de horario de turno</strong><br>
-            Turno: ${parametrosURL.horario_turno}<br>
-            Tiempo hasta tu turno: ${horasRestantes}h ${minRestantes}min<br><br>
-            <small>Si es una emergencia, contacta a tu supervisor.</small>`;
+          mensajeDiv.innerHTML = `⏰ <strong>Fuera de horario de check-in</strong><br>
+            Ventana check-in: ${parametrosURL.horario_turno}<br>
+            Tiempo hasta ventana check-in: ${horasRestantes}h ${minRestantes}min<br><br>
+            <small>💡 Solo puedes hacer check-in durante la ventana horaria asignada<br>
+            Si es una emergencia, contacta a tu supervisor.</small>`;
           
-          mostrarError('❌ No puedes hacer check-in fuera de tu horario de turno.');
+          mostrarError('❌ No puedes hacer check-in fuera de tu horario asignado.');
           return false;
         }
       } catch (error) {
         horarioValido = false;
-        document.getElementById('horario-mensaje').innerHTML = '❌ Error en formato de horario. Contacta al administrador.';
-        mostrarError('❌ Error en configuración de horario.');
+        document.getElementById('horario-mensaje').innerHTML = '❌ Error en formato de horario check-in. Contacta al administrador.';
+        mostrarError('❌ Error en configuración de horario check-in.');
         return false;
       }
     }
@@ -609,13 +622,13 @@
         optionDiv.className = `zone-option ${zonaSeleccionada === zona ? 'selected' : ''}`;
         optionDiv.innerHTML = `
           <div class="zone-name">
-            ${esPrincipal ? '⭐' : '📍'} ${zona}
+            ${config.emoji} ${zona}
             <span class="${esPrincipal ? 'zone-principal-badge' : 'zone-secondary-badge'}">
               ${esPrincipal ? 'PRINCIPAL' : 'SECUNDARIA'}
             </span>
           </div>
           <div class="zone-distance">
-            Radio: ${config.radio}m | Tipo: ${config.tipo}
+            📏 Radio: ${config.radio}m | 🏷️ Tipo: ${config.tipo}
             ${esPrincipal ? ' - Zona asignada según calendario' : ' - Requiere motivo'}
           </div>
         `;
@@ -627,6 +640,11 @@
           this.classList.add('selected');
           zonaSeleccionada = zona;
           motivoSeleccionado = null;
+          
+          // Reset motivo display
+          const motivoDisplay = document.getElementById('motivo-display');
+          motivoDisplay.innerHTML = '<div class="motivo-placeholder">👆 Selecciona un motivo válido</div>';
+          motivoDisplay.classList.remove('selected');
           
           const motivoSelector = document.getElementById('motivo-selector');
           if (!esPrincipal) {
@@ -648,13 +666,24 @@
 
     function configurarSelectores() {
       document.querySelectorAll('.motivo-option').forEach(option => {
+        // Skip el display option
+        if (option.id === 'motivo-display') return;
+        
         option.addEventListener('click', function() {
           const motivo = this.dataset.motivo;
           if (motivo === '') return;
           
+          // Limpiar selecciones anteriores
           document.querySelectorAll('.motivo-option').forEach(o => o.classList.remove('selected'));
+          
+          // Seleccionar este motivo
           this.classList.add('selected');
           motivoSeleccionado = motivo;
+          
+          // Actualizar el display del motivo seleccionado
+          const motivoDisplay = document.getElementById('motivo-display');
+          motivoDisplay.innerHTML = this.innerHTML;
+          motivoDisplay.classList.add('selected');
           
           validarSeleccionCompleta();
         });
@@ -695,18 +724,18 @@
 
     function obtenerTextoMotivo(motivo) {
       const motivos = {
-        'incidencia': 'Atendiendo incidencia',
-        'mantenimiento': 'Mantenimiento programado',
-        'mantenimiento_urgencia': 'Mantenimiento de urgencia',
-        'apoyo': 'Apoyo a otro técnico',
-        'apoyo_interzonal': 'Apoyo interzonal por carga de trabajo',
-        'ausencia_reemplazo': 'Ausencia de un compañero reemplazado',
-        'traslado': 'Traslado de material/equipo',
-        'reunion': 'Reunión de trabajo',
-        'supervision': 'Supervisión/inspección',
-        'planificacion_especial': 'Cambio de planificación (turno especial)',
-        'emergencia': 'Situación de emergencia',
-        'otro': 'Otro motivo'
+        'incidencia': '🚨 Atendiendo incidencia',
+        'mantenimiento': '🔧 Mantenimiento programado',
+        'mantenimiento_urgencia': '⚡ Mantenimiento de urgencia',
+        'apoyo': '🤝 Apoyo a otro técnico',
+        'apoyo_interzonal': '🔄 Apoyo interzonal por carga de trabajo',
+        'ausencia_reemplazo': '👥 Ausencia de un compañero reemplazado',
+        'traslado': '🚚 Traslado de material/equipo',
+        'reunion': '💼 Reunión de trabajo',
+        'supervision': '👔 Supervisión/inspección',
+        'planificacion_especial': '📋 Cambio de planificación (turno especial)',
+        'emergencia': '🚨 Situación de emergencia',
+        'otro': '❓ Otro motivo'
       };
       return motivos[motivo] || motivo;
     }
