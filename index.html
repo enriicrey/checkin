@@ -351,6 +351,7 @@
   <script>
     // CONFIGURACIÓN DE ZONAS CON EMOJIS
     const zonasConfiguracion = {
+      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
       "Todas": { lat: 40.4168, lng: -3.7038, radio: 1000, tipo: "general", codigo: "ALL", emoji: "🌟" },
       "Utilities": { lat: 40.4200, lng: -3.7100, radio: 600, tipo: "utilities", codigo: "UTIL", emoji: "⚡" },
       "Laboratorio": { lat: 40.4150, lng: -3.7050, radio: 400, tipo: "laboratorio", codigo: "LAB", emoji: "🔬" },
@@ -359,7 +360,7 @@
       "Almacén": { lat: 40.4160, lng: -3.7040, radio: 500, tipo: "almacen", codigo: "ALM", emoji: "📦" },
       "Línea-C": { lat: 40.4190, lng: -3.7090, radio: 450, tipo: "produccion", codigo: "LC", emoji: "🏭" },
       "Línea-B": { lat: 40.4170, lng: -3.7070, radio: 450, tipo: "produccion", codigo: "LB", emoji: "🏭" },
-      "Línea-A": { lat: 40.4140, lng: -3.7030, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
+      //"Línea-A": { lat: 40.4140, lng: -3.7030, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
       "Oficinas": { lat: 40.4210, lng: -3.7110, radio: 300, tipo: "oficinas", codigo: "OFIC", emoji: "🏢" }
     };
 
@@ -379,6 +380,7 @@
     let fechaValida = false;
     let horarioValido = false;
     let zonasAutorizadas = [];
+    let historialErroresGPS = []; // SOLO para registrar mensajes de error
 
     // INICIALIZACIÓN
     window.onload = function() {
@@ -643,7 +645,7 @@
           
           // Reset motivo display
           const motivoDisplay = document.getElementById('motivo-display');
-          motivoDisplay.innerHTML = '<div class="motivo-placeholder">👆 Selecciona un motivo válido</div>';
+          motivoDisplay.innerHTML = '<div class="motivo-placeholder">👇 Selecciona un motivo válido</div>';
           motivoDisplay.classList.remove('selected');
           
           const motivoSelector = document.getElementById('motivo-selector');
@@ -798,6 +800,12 @@
         return;
       }
 
+      // VALIDACIÓN CRÍTICA: Verificar límite de intentos ANTES de proceder
+      if (intentosGPS >= MAX_INTENTOS) {
+        mostrarLimiteAlcanzado();
+        return;
+      }
+
       const tieneConexion = await validarConectividad();
       if (!tieneConexion) {
         mostrarError('Sin conexión a internet. Verifica tu conectividad.');
@@ -809,11 +817,12 @@
         return;
       }
 
+      // Incrementar contador DESPUÉS de validar que podemos proceder
       intentosGPS++;
-      mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS}/3)`);
+      mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS}/${MAX_INTENTOS})`);
 
       const button = document.getElementById('gps-button');
-      button.innerHTML = `Obteniendo GPS... (${intentosGPS}/3)`;
+      button.innerHTML = `Obteniendo GPS... (${intentosGPS}/${MAX_INTENTOS})`;
       button.disabled = true;
       button.classList.add('loading');
 
@@ -837,18 +846,39 @@
 
       mostrarEstado('Ubicación obtenida. Validando zona asignada...');
 
+      // VALIDACIÓN 1: Ubicación fuera de España
       if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
-        mostrarError('Ubicación fuera de España detectada');
+        const errorMsg = `Ubicación fuera de España: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        historialErroresGPS.push(errorMsg);
+        
+        mostrarError('❌ Ubicación fuera de España detectada');
+        resetearBoton();
         return;
       }
 
-      if (accuracy > 100) {
-        if (!confirm(`GPS poco preciso (${Math.round(accuracy)}m). ¿Continuar con check-in?`)) {
+      // VALIDACIÓN 2: Precisión sospechosa
+      if (accuracy < 5) {
+        const errorMsg = `Precisión GPS sospechosamente alta: ${accuracy}m`;
+        historialErroresGPS.push(errorMsg);
+        
+        if (!confirm(`⚠️ GPS sospechosamente preciso (${accuracy}m). Esto puede indicar ubicación falsa. ¿Continuar?`)) {
           resetearBoton();
           return;
         }
       }
 
+      // VALIDACIÓN 3: Precisión baja
+      if (accuracy > 100) {
+        const errorMsg = `GPS poco preciso: ${Math.round(accuracy)}m`;
+        historialErroresGPS.push(errorMsg);
+        
+        if (!confirm(`⚠️ GPS poco preciso (${Math.round(accuracy)}m). ¿Continuar con check-in?`)) {
+          resetearBoton();
+          return;
+        }
+      }
+
+      // Si llegamos aquí, procesar check-in normal
       const validacion = validarUbicacionConZonasSecundarias(lat, lng);
       
       validacion.device_fingerprint = deviceFingerprint;
@@ -861,6 +891,8 @@
 
     function errorGPS(error) {
       let errorMsg = '';
+      let puedeReintentar = intentosGPS < MAX_INTENTOS;
+      
       switch(error.code) {
         case error.PERMISSION_DENIED:
           errorMsg = 'Permisos de ubicación denegados';
@@ -872,12 +904,65 @@
           errorMsg = 'Tiempo agotado obteniendo GPS';
           break;
         default:
-          errorMsg = 'Error desconocido obteniendo ubicación';
+          errorMsg = `Error desconocido obteniendo ubicación (código: ${error.code})`;
           break;
       }
 
-      mostrarError(errorMsg);
-      resetearBoton();
+      // SOLO registrar error en historial, NO enviar
+      historialErroresGPS.push(errorMsg);
+
+      if (puedeReintentar) {
+        mostrarErrorConReintento(errorMsg);
+        resetearBoton();
+      } else {
+        // SOLO al alcanzar límite, enviar historial completo
+        mostrarLimiteAlcanzado();
+      }
+    }
+
+    function mostrarErrorConReintento(mensaje) {
+      document.getElementById('status-message').innerHTML = `
+        <div class="error-box">
+          ❌ ${mensaje}<br><br>
+          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
+          💡 Puedes intentar de nuevo<br><br>
+          📞 <strong>Si necesitas ayuda:</strong><br>
+          <a href="tel:${parametrosURL.telefono}">${parametrosURL.telefono}</a>
+        </div>`;
+    }
+
+    function mostrarLimiteAlcanzado() {
+      document.getElementById('status-message').innerHTML = `
+        <div class="error-box">
+          ❌ <strong>Máximo de intentos GPS alcanzado (${MAX_INTENTOS})</strong><br><br>
+          📧 <strong>Tu supervisor ha sido notificado automáticamente</strong><br>
+          🔔 Te contactará para autorizar check-in manual<br><br>
+          📞 <strong>Contacta directamente:</strong><br>
+          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
+          💡 <strong>Posibles soluciones:</strong><br>
+          • Verificar permisos de ubicación en navegador<br>
+          • Salir al exterior para mejor señal GPS<br>
+          • Reiniciar navegador y recargar página<br>
+          • Usar otro dispositivo si persiste el problema
+        </div>`;
+        
+      // Deshabilitar botón GPS permanentemente
+      const button = document.getElementById('gps-button');
+      button.disabled = true;
+      button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+      button.style.background = '#dc3545';
+      button.style.opacity = '0.7';
+      button.classList.remove('loading');
+      
+      // Deshabilitar botón emergencia también
+      const emergencyButton = document.getElementById('emergency-button');
+      emergencyButton.disabled = true;
+      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
+      emergencyButton.style.background = '#6c757d';
+      emergencyButton.style.opacity = '0.7';
+      
+      // Enviar notificación al supervisor por límite alcanzado
+      enviarNotificacionSupervisor('MAX_ATTEMPTS_REACHED', 'GPS falló múltiples veces');
     }
 
     async function enviarResultadoCheckIn(lat, lng, accuracy, validacion) {
@@ -989,13 +1074,73 @@
     }
 
     function resetearBoton() {
+      // Solo resetear si no se ha alcanzado el límite de intentos
+      if (intentosGPS < MAX_INTENTOS) {
+        const button = document.getElementById('gps-button');
+        button.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
+        button.disabled = false;
+        button.classList.remove('loading');
+        button.style.background = '';
+        
+        validarSeleccionCompleta();
+      }
+    }
+
+    // Eliminar función no usada
+    function mostrarErrorConReintento(mensaje) {
+      document.getElementById('status-message').innerHTML = `
+        <div class="error-box">
+          ❌ ${mensaje}<br><br>
+          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
+          💡 Puedes intentar de nuevo<br><br>
+          📞 <strong>Si necesitas ayuda, usa el botón "CONTACTAR SUPERVISOR"</strong>
+        </div>`;
+    }
+
+    function mostrarLimiteAlcanzado() {
+      document.getElementById('status-message').innerHTML = `
+        <div class="error-box">
+          ❌ <strong>Máximo de intentos GPS alcanzado (${MAX_INTENTOS})</strong><br><br>
+          📧 <strong>Supervisor notificado con historial de errores</strong><br>
+          🔔 Te contactará para procesar check-in manual<br><br>
+          📞 <strong>Contacta directamente:</strong><br>
+          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a>
+        </div>`;
+        
+      // Deshabilitar botones
       const button = document.getElementById('gps-button');
-      button.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
-      button.disabled = false;
+      button.disabled = true;
+      button.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+      button.style.background = '#dc3545';
+      button.style.opacity = '0.7';
       button.classList.remove('loading');
-      button.style.background = '';
       
-      validarSeleccionCompleta();
+      const emergencyButton = document.getElementById('emergency-button');
+      emergencyButton.disabled = true;
+      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
+      emergencyButton.style.background = '#6c757d';
+      emergencyButton.style.opacity = '0.7';
+      
+      // Enviar historial completo
+      enviarHistorialCompleto();
+    }
+
+    function enviarHistorialCompleto() {
+      const url = webhookManual +
+                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                 `&error_message=LIMITE_INTENTOS_ALCANZADO` +
+                 `&total_intentos=${intentosGPS}` +
+                 `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+                 `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
+                 `&timestamp=${Math.floor(Date.now()/1000)}`;
+      
+      fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Historial completo enviado'))
+        .catch(() => console.log('❌ Error enviando historial'));
     }
 
     function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -1025,11 +1170,14 @@
     function contactarSupervisor() {
       const tel = parametrosURL.telefono || '';
       if (tel) {
-        if (confirm('¿Quieres contactar a tu supervisor?')) {
-          const infoAdicional = zonaSeleccionada !== parametrosURL.zona_principal ? 
+        if (confirm('📞 ¿Quieres contactar a tu supervisor?\n\n✅ SÍ: Será notificado para hacer check-in manual\n❌ NO: Cancelar')) {
+          const infoSolicitud = zonaSeleccionada !== parametrosURL.zona_principal ? 
             `Zona solicitada: ${zonaSeleccionada}. Motivo: ${obtenerTextoMotivo(motivoSeleccionado || 'no especificado')}` :
             `Zona principal: ${parametrosURL.zona_principal}`;
-            
+          
+          // ENVÍO: Solo cuando el técnico solicita contacto manual
+          enviarSolicitudManual(infoSolicitud);
+          
           document.getElementById('status-message').innerHTML = `
             <div class="success-box">
               📧 <strong>Supervisor notificado correctamente</strong><br><br>
@@ -1038,18 +1186,39 @@
               📋 <strong>Información enviada:</strong><br>
               • Zona solicitada: ${zonaSeleccionada}<br>
               ${motivoSeleccionado ? `• Motivo: ${obtenerTextoMotivo(motivoSeleccionado)}<br>` : ''}
-              <br>📱 <strong>Llamada directa:</strong><br>
+              • Historial errores GPS: ${historialErroresGPS.length} error(es)<br><br>
+              📱 <strong>Llamada directa:</strong><br>
               <a href="tel:${tel}">${tel}</a>
             </div>`;
           
           document.getElementById('gps-button').disabled = true;
           document.getElementById('emergency-button').disabled = true;
-          document.getElementById('emergency-button').innerHTML = 'ENVIADO';
+          document.getElementById('emergency-button').innerHTML = '✅ ENVIADO';
           document.getElementById('emergency-button').style.background = '#28a745';
         }
       } else {
-        mostrarError("Teléfono del supervisor no disponible.");
+        mostrarError("❌ Teléfono del supervisor no disponible.");
       }
+    }
+
+    function enviarSolicitudManual(infoSolicitud) {
+      const url = webhookManual +
+                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                 `&zona_solicitada=${encodeURIComponent(zonaSeleccionada)}` +
+                 `&motivo_cambio=${encodeURIComponent(motivoSeleccionado || '')}` +
+                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                 `&error_message=SOLICITUD_CHECKIN_MANUAL` +
+                 `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
+                 `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+                 `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
+                 `&timestamp=${Math.floor(Date.now()/1000)}`;
+      
+      fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Solicitud manual enviada al supervisor'))
+        .catch(() => console.log('❌ Error enviando solicitud manual'));
     }
 
     function cerrarPagina() {
