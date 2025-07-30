@@ -351,7 +351,7 @@
   <script>
     // CONFIGURACIÓN DE ZONAS CON EMOJIS
     const zonasConfiguracion = {
-      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 500, tipo: "produccion", codigo: "LA", emoji: "🏭" },
+      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 450, tipo: "produccion", codigo: "LA", emoji: "🏭" },
       "Todas": { lat: 40.4168, lng: -3.7038, radio: 1000, tipo: "general", codigo: "ALL", emoji: "🌟" },
       "Utilities": { lat: 40.4200, lng: -3.7100, radio: 600, tipo: "utilities", codigo: "UTIL", emoji: "⚡" },
       "Laboratorio": { lat: 40.4150, lng: -3.7050, radio: 400, tipo: "laboratorio", codigo: "LAB", emoji: "🔬" },
@@ -815,7 +815,7 @@
       bloquearInterfazCritica(mensaje);
     }
 
-    // FUNCIÓN PARA ERRORES NORMALES (con reintentos)
+    // FUNCIÓN PARA ERRORES NORMALES (con reintentos) - MENSAJE PERSISTENTE
     function manejarErrorConReintentos(tipo, evento, mensaje) {
       console.log(`⚠️ Error normal detectado: ${tipo} (Intento ${intentosGPS}/${MAX_INTENTOS})`);
       
@@ -833,8 +833,9 @@
         enviarHistorialCompleto('LIMITE_ALCANZADO');
         bloquearInterfazLimite();
       } else {
-        // Permitir reintento
+        // Permitir reintento - MOSTRAR ERROR PRIMERO
         mostrarErrorConOpcionReintento(mensaje, tipo);
+        // Luego resetear botón SIN cambiar mensaje
         resetearBotonParaReintento();
       }
     }
@@ -921,25 +922,31 @@
       emergencyButton.style.opacity = '0.7';
     }
 
-    // MOSTRAR ERROR CON OPCIÓN DE REINTENTO
+    // MOSTRAR ERROR CON OPCIÓN DE REINTENTO (MENSAJE PERSISTENTE)
     function mostrarErrorConOpcionReintento(mensaje, tipo) {
       const sugerencias = {
         'GPS_IMPRECISO': 'Sal al exterior o busca zona con mejor cobertura GPS',
         'FUERA_ZONA': 'Desplázate hacia el centro de tu zona asignada',
-        'ERROR_TECNICO_GPS': 'Verifica permisos de ubicación en el navegador'
+        'ERROR_TECNICO_GPS': 'Verifica permisos de ubicación en el navegador',
+        'PERMISOS_GPS_DENEGADOS': 'Habilita permisos de ubicación en tu navegador',
+        'TIMEOUT_GPS': 'Busca zona con mejor cobertura GPS y reintenta'
       };
       
+      // MENSAJE PERSISTENTE que se mantiene visible
       document.getElementById('status-message').innerHTML = `
-        <div class="warning-box">
-          ⚠️ ${mensaje}<br><br>
-          🔄 <strong>Intento ${intentosGPS}/${MAX_INTENTOS}</strong><br>
+        <div class="warning-box" id="mensaje-persistente">
+          ⚠️ <strong>${mensaje}</strong><br><br>
+          🔄 <strong>Intento ${intentosGPS} de ${MAX_INTENTOS} completado</strong><br>
           📊 <em>Evento registrado para auditoría</em><br><br>
           💡 <strong>Sugerencia:</strong> ${sugerencias[tipo] || 'Reintenta tras verificar las condiciones'}<br><br>
+          🔄 <strong>Puedes hacer ${MAX_INTENTOS - intentosGPS} intento(s) más</strong><br>
           📞 <strong>Si necesitas ayuda:</strong> Contacta a tu supervisor
         </div>`;
+        
+      console.log(`📝 Mensaje persistente mostrado: ${tipo} - Intento ${intentosGPS}/${MAX_INTENTOS}`);
     }
 
-    // RESETEAR BOTÓN PARA PERMITIR REINTENTO
+    // RESETEAR BOTÓN PARA PERMITIR REINTENTO (SIN SOBRESCRIBIR MENSAJE)
     function resetearBotonParaReintento() {
       if (intentosGPS < MAX_INTENTOS) {
         const button = document.getElementById('gps-button');
@@ -948,8 +955,10 @@
         button.classList.remove('loading');
         button.style.background = '#f39c12'; // Color naranja para reintentos
         
-        // Validar que la selección siga siendo correcta
-        validarSeleccionCompleta();
+        // ❌ ELIMINADO: No llamar validarSeleccionCompleta() para no sobrescribir mensaje de error
+        // validarSeleccionCompleta();
+        
+        console.log(`🔄 Botón reseteado para reintento ${intentosGPS + 1}/${MAX_INTENTOS}`);
       }
     }
 
@@ -1384,13 +1393,19 @@
     // ========================================
 
     async function enviarResultadoCheckIn(lat, lng, accuracy, validacion) {
+      console.log('🚀 Iniciando envío de resultado check-in...');
+      console.log('📍 Coordenadas:', lat, lng, 'Precisión:', accuracy);
+      console.log('✅ Validación:', validacion);
+      
       const tieneConexion = await validarConectividad();
       if (!tieneConexion) {
+        console.log('❌ Sin conexión detectada');
         mostrarError('Perdida conexión antes del envío. Reintenta cuando tengas conexión.');
         return;
       }
 
       const webhook = validacion.valido ? webhookExitoso : webhookManual;
+      console.log(`📡 Usando webhook: ${validacion.valido ? 'EXITOSO' : 'MANUAL'}`);
       
       const fechaActual = new Date();
       const url = webhook + 
@@ -1420,14 +1435,54 @@
                  `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
                  `&timestamp=${Math.floor(Date.now()/1000)}`;
 
-      if (validacion.valido) {
-        mostrarPaginaConfirmacion(validacion);
-        setTimeout(() => {
-          fetch(url, {method: 'GET'}).catch(() => {});
-        }, 1000);
-      } else {
-        mostrarResultadoError(validacion);
-        fetch(url, {method: 'GET'}).catch(() => {});
+      console.log('🔗 URL completa del webhook:', url);
+
+      try {
+        if (validacion.valido) {
+          console.log('✅ Enviando resultado EXITOSO...');
+          mostrarPaginaConfirmacion(validacion);
+          
+          // Enviar inmediatamente, no con timeout
+          const response = await fetch(url, {method: 'GET'});
+          console.log('📨 Respuesta webhook exitoso:', response.status, response.statusText);
+          
+          if (!response.ok) {
+            console.error('❌ Error en webhook exitoso:', response.status);
+            // Mostrar mensaje de error pero mantener confirmación
+            document.getElementById('status-message').innerHTML = `
+              <div class="warning-box">
+                ⚠️ Check-in procesado localmente pero error enviando a servidor<br>
+                📞 Contacta a tu supervisor si necesitas confirmación
+              </div>`;
+          } else {
+            console.log('✅ Webhook exitoso enviado correctamente');
+          }
+        } else {
+          console.log('❌ Enviando resultado para VALIDACIÓN MANUAL...');
+          mostrarResultadoError(validacion);
+          
+          const response = await fetch(url, {method: 'GET'});
+          console.log('📨 Respuesta webhook manual:', response.status, response.statusText);
+          
+          if (!response.ok) {
+            console.error('❌ Error en webhook manual:', response.status);
+          } else {
+            console.log('✅ Webhook manual enviado correctamente');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error crítico enviando webhook:', error);
+        
+        // Mostrar error específico al usuario
+        document.getElementById('status-message').innerHTML = `
+          <div class="error-box">
+            🚨 <strong>Error enviando datos al servidor</strong><br><br>
+            📝 Tu check-in ha sido procesado localmente<br>
+            📞 <strong>IMPORTANTE:</strong> Contacta inmediatamente a tu supervisor<br>
+            📧 Email: ${parametrosURL.supervisor}<br>
+            📱 Teléfono: ${parametrosURL.telefono}<br><br>
+            🔍 <strong>Error técnico:</strong> ${error.message}
+          </div>`;
       }
     }
 
