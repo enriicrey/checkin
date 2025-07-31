@@ -1,1698 +1,2012 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Check-in GPS Técnicos</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 10px;
-    }
-    .container {
-      background: white;
-      border-radius: 15px;
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header .icon { font-size: 50px; }
-    .info-box { background: #f1f1f1; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
-    .info-item { margin: 8px 0; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-    .info-item strong { min-width: 80px; }
-    
-    /* Alerta de horario */
-    .horario-alert {
-      background: #fff3cd;
-      border: 2px solid #ffc107;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-      color: #856404;
-    }
-    .horario-alert h4 { margin: 0 0 8px 0; color: #f57c00; }
-    .horario-permitido { background: #d4edda; border-color: #28a745; color: #155724; }
-    .horario-fuera { background: #f8d7da; border-color: #dc3545; color: #721c24; }
-    
-    /* Alerta de fecha */
-    .fecha-alert {
-      background: #f8d7da;
-      border: 2px solid #dc3545;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-      color: #721c24;
-    }
-    
-    /* Estilos para selectores */
-    .zona-selector {
-      background: #e8f5e8;
-      border: 2px solid #28a745;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-    }
-    .motivo-selector {
-      background: #fff3e0;
-      border: 2px solid #ff9800;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-      display: none;
-    }
-    .zona-selector h4 { color: #1e7e34; margin: 0 0 10px 0; }
-    .motivo-selector h4 { color: #f57c00; margin: 0 0 10px 0; }
-    .required { color: #dc3545; font-weight: bold; }
-    
-    .zona-info, .motivo-info {
-      background: rgba(255,255,255,0.7);
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin: 8px 0 12px 0;
-      font-size: 12px;
-      color: #666;
-    }
-    
-    .zone-option, .motivo-option {
-      background: white;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 8px 0;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-    .zone-option:hover, .motivo-option:hover { 
-      border-color: #007bff; 
-      background: #f8f9fa; 
-      transform: translateY(-1px);
-    }
-    .zone-option.selected { 
-      border-color: #28a745; 
-      background: #e8f5e8; 
-      box-shadow: 0 2px 8px rgba(40,167,69,0.3);
-    }
-    .motivo-option.selected { 
-      border-color: #ff9800; 
-      background: #fff3e0; 
-      box-shadow: 0 2px 8px rgba(255,152,0,0.3);
-    }
-    .zone-option.disabled, .motivo-option.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-    
-    .zone-option .zone-name { 
-      font-weight: bold; 
-      color: #1e7e34; 
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .zone-option .zone-distance { 
-      font-size: 12px; 
-      color: #666; 
-      margin-top: 6px; 
-    }
-    .zone-principal-badge {
-      background: #28a745;
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-weight: bold;
-    }
-    .zone-secondary-badge {
-      background: #17a2b8;
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-weight: bold;
-    }
-    
-    .motivo-placeholder {
-      color: #999;
-      font-style: italic;
-      text-align: center;
-      padding: 8px;
-    }
-    .motivo-option[data-motivo=""] {
-      border-style: dashed;
-      border-color: #ccc;
-      background: #f8f9fa;
-    }
-    .motivo-selected-display {
-      border: 2px solid #007bff !important;
-      background: #e3f2fd !important;
-      font-weight: bold;
-    }
-    .motivo-selected-display .motivo-placeholder {
-      color: #0056b3;
-      font-weight: bold;
-    }
-    
-    .button { 
-      background: #2ecc71; 
-      color: white; 
-      padding: 12px; 
-      border: none; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      width: 100%; 
-      margin-bottom: 10px; 
-      font-weight: bold; 
-      transition: all 0.3s ease;
-    }
-    .button:disabled { background: #95a5a6; cursor: not-allowed; }
-    .button.loading { background: #f39c12; animation: pulse 1s infinite; }
-    .button-emergency { background: #e74c3c; }
-    
-    .success-box, .error-box, .warning-box { 
-      padding: 15px; 
-      border-radius: 8px; 
-      font-weight: bold; 
-      margin-bottom: 15px; 
-      line-height: 1.4;
-    }
-    .success-box { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-    .error-box { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
-    .warning-box { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
-    
-    /* Página de confirmación */
-    .confirmation-page {
-      text-align: center;
-      padding: 40px 20px;
-    }
-    .confirmation-icon {
-      font-size: 80px;
-      margin-bottom: 20px;
-      animation: bounce 2s infinite;
-    }
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-10px); }
-      60% { transform: translateY(-5px); }
-    }
-    .confirmation-details {
-      background: #f8f9fa;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-      text-align: left;
-    }
-    .confirmation-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #dee2e6;
-    }
-    .confirmation-item:last-child { border-bottom: none; }
-    .confirmation-label { font-weight: bold; color: #495057; }
-    .confirmation-value { color: #28a745; font-weight: bold; }
-    
-    .footer { font-size: 11px; text-align: center; margin-top: 15px; color: #666; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-    
-    .connectivity-status {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-    .connectivity-online { background: #d4edda; color: #155724; }
-    .connectivity-offline { background: #f8d7da; color: #721c24; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in GPS Técnicos - v2.0</title>
+    <style>
+        /* ======================================== */
+        /* 🎨 ESTILOS CSS - INTERFAZ USUARIO */
+        /* ======================================== */
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header .icon {
+            font-size: 50px;
+        }
+        
+        .info-box {
+            background: #f1f1f1;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            margin: 8px 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-item strong {
+            min-width: 80px;
+        }
+        
+        /* Alertas de validación */
+        .horario-alert {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        
+        .horario-alert h4 {
+            margin: 0 0 8px 0;
+            color: #f57c00;
+        }
+        
+        .horario-permitido {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .horario-fuera {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .fecha-alert {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #721c24;
+        }
+        
+        /* Selectores de zona y motivo */
+        .zona-selector {
+            background: #e8f5e8;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .motivo-selector {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .zona-selector h4 {
+            color: #1e7e34;
+            margin: 0 0 10px 0;
+        }
+        
+        .motivo-selector h4 {
+            color: #f57c00;
+            margin: 0 0 10px 0;
+        }
+        
+        .required {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .zone-option, .motivo-option {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .zone-option:hover, .motivo-option:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+            transform: translateY(-1px);
+        }
+        
+        .zone-option.selected {
+            border-color: #28a745;
+            background: #e8f5e8;
+            box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+        }
+        
+        .motivo-option.selected {
+            border-color: #ff9800;
+            background: #fff3e0;
+            box-shadow: 0 2px 8px rgba(255,152,0,0.3);
+        }
+        
+        .zone-option .zone-name {
+            font-weight: bold;
+            color: #1e7e34;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .zone-principal-badge {
+            background: #28a745;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .zone-secondary-badge {
+            background: #17a2b8;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        /* Botones y estados */
+        .button {
+            background: #2ecc71;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .button.loading {
+            background: #f39c12;
+            animation: pulse 1s infinite;
+        }
+        
+        .button-emergency {
+            background: #e74c3c;
+        }
+        
+        .success-box, .error-box, .warning-box {
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .error-box {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        /* Página de confirmación */
+        .confirmation-page {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .confirmation-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .confirmation-details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .confirmation-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .confirmation-item:last-child {
+            border-bottom: none;
+        }
+        
+        .confirmation-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .confirmation-value {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .connectivity-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .connectivity-online {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .connectivity-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
 </head>
 <body>
-  <div class="connectivity-status" id="connectivity-status">Online</div>
-  
-  <div class="container">
-    <div class="header">
-      <div class="icon">📍</div>
-      <h1>CHECK-IN TÉCNICOS</h1>
-      <div class="subtitle">Sistema de Control de Presencia</div>
-    </div>
-
-    <!-- Contenido principal del check-in -->
-    <div id="checkin-content">
-      <div class="info-box">
-        <div class="info-item">
-          <strong>👤 Técnico:</strong> <span id="tecnico-nombre">Cargando...</span>
-        </div>
-        <div class="info-item">
-          <strong>🎯 Zona Principal:</strong> <span id="zona-principal">Cargando...</span>
-        </div>
-        <div class="info-item">
-          <strong>📍 Zonas Secundarias:</strong> <span id="zonas-secundarias">Verificando...</span>
-        </div>
-        <div class="info-item">
-          <strong>💼 Turno de trabajo:</strong> <span id="turno-info">Cargando...</span>
-        </div>
-        <div class="info-item">
-          <strong>⏰ Horario Check-in:</strong> <span id="horario-turno">Cargando...</span>
-        </div>
-        <div class="info-item">
-          <strong>🕒 Hora actual:</strong> <span id="hora-actual">--:--:--</span>
-        </div>
-      </div>
-
-      <!-- Alerta de validación de fecha -->
-      <div class="fecha-alert" id="fecha-alert" style="display:none;">
-        <h4>❌ Enlace no válido para hoy</h4>
-        <p>Este enlace es para otra fecha. Usa el enlace correcto del calendario de hoy.</p>
-      </div>
-
-      <!-- Alerta de horario -->
-      <div class="horario-alert" id="horario-alert">
-        <h4>⏰ Validando horario de turno...</h4>
-        <p id="horario-mensaje">Verificando si está dentro del horario permitido...</p>
-      </div>
-
-      <!-- Selector de Zona de Trabajo -->
-      <div class="zona-selector" id="zona-selector" style="display:none;">
-        <h4>🎯 Zona de trabajo para este check-in:</h4>
-        <div class="zona-info">
-          <small>Por defecto: Zona principal según calendario. Solo puedes seleccionar zonas autorizadas para ti.</small>
-        </div>
-        <div id="zona-options"></div>
-      </div>
-
-      <!-- Selector de Motivo -->
-      <div class="motivo-selector" id="motivo-selector">
-        <h4>📝 Motivo del trabajo en zona secundaria: <span class="required">*</span></h4>
-        <div class="motivo-info">
-          <small>Requerido cuando trabajas fuera de tu zona principal asignada</small>
-        </div>
-        <div id="motivo-options">
-          <div class="motivo-option motivo-selected-display" data-motivo="" id="motivo-display">
-            <div class="motivo-placeholder">👆 Selecciona un motivo válido</div>
-          </div>
-          <div class="motivo-option" data-motivo="incidencia">🚨 Atendiendo incidencia</div>
-          <div class="motivo-option" data-motivo="mantenimiento">🔧 Mantenimiento programado</div>
-          <div class="motivo-option" data-motivo="mantenimiento_urgencia">⚡ Mantenimiento de urgencia</div>
-          <div class="motivo-option" data-motivo="apoyo">🤝 Apoyo a otro técnico</div>
-          <div class="motivo-option" data-motivo="apoyo_interzonal">🔄 Apoyo interzonal por carga de trabajo</div>
-          <div class="motivo-option" data-motivo="ausencia_reemplazo">👥 Ausencia de un compañero reemplazado</div>
-          <div class="motivo-option" data-motivo="traslado">🚚 Traslado de material/equipo</div>
-          <div class="motivo-option" data-motivo="reunion">💼 Reunión de trabajo</div>
-          <div class="motivo-option" data-motivo="supervision">👔 Supervisión/inspección</div>
-          <div class="motivo-option" data-motivo="planificacion_especial">📋 Cambio de planificación (turno especial)</div>
-          <div class="motivo-option" data-motivo="emergencia">🚨 Situación de emergencia</div>
-          <div class="motivo-option" data-motivo="otro">❓ Otro motivo</div>
-        </div>
-      </div>
-
-      <div class="status-message" id="status-message">
-        <div class="warning-box">Validando parámetros de acceso...</div>
-      </div>
-
-      <button class="button" id="gps-button" onclick="iniciarCheckIn()" disabled>VALIDANDO ACCESO...</button>
-      <button class="button button-emergency" id="emergency-button" onclick="contactarSupervisor()">CONTACTAR SUPERVISOR</button>
-    </div>
-
-    <!-- Página de confirmación (oculta inicialmente) -->
-    <div id="confirmation-content" style="display:none;">
-      <div class="confirmation-page">
-        <div class="confirmation-icon">✅</div>
-        <h2>Check-in Completado</h2>
-        <p>Tu presencia ha sido registrada exitosamente</p>
-        
-        <div class="confirmation-details" id="confirmation-details">
-          <!-- Se llenará dinámicamente -->
-        </div>
-        
-        <div class="success-box">
-          <strong>¿Qué pasa ahora?</strong><br><br>
-          📊 Tus datos se han enviado al sistema<br>
-          📧 Tu supervisor ha sido notificado<br>
-          📱 Puedes cerrar esta página<br><br>
-          <small>Si tienes algún problema durante tu turno, contacta a tu supervisor.</small>
-        </div>
-        
-        <button class="button" onclick="cerrarPagina()">CERRAR</button>
-      </div>
-    </div>
-
-    <div class="footer">
-      Datos protegidos | GPS activado | Integrado con Notion
-    </div>
-  </div>
-
-  <script>
-    // CONFIGURACIÓN DE ZONAS CON EMOJIS
-    const zonasConfiguracion = {
-      "Línea-A": { lat: 41.53838, lng: 1.8679, radio: 5000, tipo: "produccion", codigo: "LA", emoji: "🏭" },
-      "Todas": { lat: 40.4168, lng: -3.7038, radio: 1000, tipo: "general", codigo: "ALL", emoji: "🌟" },
-      "Utilities": { lat: 40.4200, lng: -3.7100, radio: 600, tipo: "utilities", codigo: "UTIL", emoji: "⚡" },
-      "Laboratorio": { lat: 40.4150, lng: -3.7050, radio: 400, tipo: "laboratorio", codigo: "LAB", emoji: "🔬" },
-      "Mantenimiento": { lat: 40.4180, lng: -3.7080, radio: 700, tipo: "mantenimiento", codigo: "MANT", emoji: "🔧" },
-      "Transporte": { lat: 40.4220, lng: -3.7120, radio: 800, tipo: "transporte", codigo: "TRANS", emoji: "🚚" },
-      "Almacén": { lat: 40.4160, lng: -3.7040, radio: 500, tipo: "almacen", codigo: "ALM", emoji: "📦" },
-      "Línea-C": { lat: 40.4190, lng: -3.7090, radio: 450, tipo: "produccion", codigo: "LC", emoji: "🏭" },
-      "Línea-B": { lat: 40.4170, lng: -3.7070, radio: 450, tipo: "produccion", codigo: "LB", emoji: "🏭" },
-      "Oficinas": { lat: 40.4210, lng: -3.7110, radio: 300, tipo: "oficinas", codigo: "OFIC", emoji: "🏢" }
-    };
-
-    // WEBHOOKS PARA MAKE
-    const webhookExitoso = 'https://hook.eu2.make.com/ce7vo1vgbpboaf9moajxp28uv7dh5mnm';
-    const webhookManual = 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0';
-
-    // VARIABLES GLOBALES
-    const MAX_INTENTOS = 3;
-    let parametrosURL = {};
-    let intentosGPS = 0; // CONTADOR UNIFICADO para todos los errores
-    let ubicacionActual = null;
-    let zonaSeleccionada = null;
-    let motivoSeleccionado = null;
-    let zonasSecundariasArray = [];
-    let deviceFingerprint = {};
-    let conectividadOnline = true;
-    let fechaValida = false;
-    let horarioValido = false;
-    let zonasAutorizadas = [];
-    let historialErroresGPS = []; // HISTORIAL COMPLETO para todos los eventos
-
-    // INICIALIZACIÓN
-    window.onload = function() {
-      cargarParametros();
-      actualizarHora();
-      setInterval(actualizarHora, 1000);
-      inicializarDeteccionDispositivo();
-      inicializarConectividad();
-      validarAcceso();
-    };
-
-    function cargarParametros() {
-      const params = new URLSearchParams(window.location.search);
-      parametrosURL = {
-        tecnico: params.get('t') || '',
-        zona_principal: params.get('z') || '',
-        zonas_secundarias: params.get('zs') || '',
-        turno: params.get('tu') || '',
-        supervisor: params.get('s') || '',
-        telefono: params.get('tel') || '',
-        fecha_evento: params.get('f') || '',
-        horario_turno: params.get('h') || '',
-        hash_validacion: params.get('hash') || ''
-      };
-
-      // Procesar zonas autorizadas (principal + secundarias)
-      zonasAutorizadas = [];
-      if (parametrosURL.zona_principal) {
-        zonasAutorizadas.push(parametrosURL.zona_principal);
-      }
-      if (parametrosURL.zonas_secundarias) {
-        zonasSecundariasArray = parametrosURL.zonas_secundarias.split(',').map(z => z.trim());
-        zonasAutorizadas.push(...zonasSecundariasArray);
-      }
-
-      // Actualizar interfaz
-      document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico || 'No especificado';
-      document.getElementById('zona-principal').textContent = parametrosURL.zona_principal || 'No especificada';
-      document.getElementById('zonas-secundarias').textContent = 
-        zonasSecundariasArray.length > 0 ? zonasSecundariasArray.join(', ') : 'Ninguna autorizada';
-      document.getElementById('turno-info').textContent = parametrosURL.turno || 'No especificado';
-      document.getElementById('horario-turno').textContent = parametrosURL.horario_turno || 'No especificado';
-
-      // Zona seleccionada por defecto: zona principal
-      zonaSeleccionada = parametrosURL.zona_principal;
-      motivoSeleccionado = null;
-    }
-
-    function actualizarHora() {
-      const ahora = new Date();
-      document.getElementById('hora-actual').textContent = ahora.toLocaleTimeString('es-ES', { 
-        hour: '2-digit', minute: '2-digit', second: '2-digit' 
-      });
-    }
-
-    // VALIDACIÓN DE ACCESO COMPLETA
-    function validarAcceso() {
-      // 1. Validar parámetros básicos primero
-      if (!parametrosURL.tecnico || !parametrosURL.zona_principal) {
-        mostrarError('❌ Enlace incompleto. Faltan parámetros obligatorios.');
-        return;
-      }
-
-      // 2. Validar fecha del evento
-      if (!validarFechaEvento()) {
-        return;
-      }
-
-      // 3. Validar zonas autorizadas
-      if (!validarZonasAutorizadas()) {
-        return;
-      }
-
-      // 4. Validar horario de turno (al final para mejor UX)
-      if (!validarHorarioTurno()) {
-        return;
-      }
-
-      // 5. Si todo es válido, mostrar interfaz
-      mostrarInterfazCheckIn();
-    }
-
-    function validarFechaEvento() {
-      const hoy = new Date().toISOString().split('T')[0];
-      
-      if (!parametrosURL.fecha_evento) {
-        parametrosURL.fecha_evento = hoy;
-        fechaValida = true;
-        return true;
-      }
-      
-      if (parametrosURL.fecha_evento !== hoy) {
-        fechaValida = false;
-        document.getElementById('fecha-alert').style.display = 'block';
-        document.getElementById('fecha-alert').innerHTML = `
-          <h4>❌ Enlace no válido para hoy</h4>
-          <p><strong>Fecha del enlace:</strong> ${parametrosURL.fecha_evento}<br>
-          <strong>Fecha actual:</strong> ${hoy}<br><br>
-          Este enlace corresponde a otro día. Usa el enlace correcto del calendario de hoy.</p>
-        `;
-        mostrarError('❌ Este enlace no es válido para la fecha de hoy.');
-        return false;
-      }
-
-      fechaValida = true;
-      return true;
-    }
-
-    function validarHorarioTurno() {
-      if (!parametrosURL.horario_turno) {
-        horarioValido = true;
-        document.getElementById('horario-alert').style.display = 'none';
-        return true;
-      }
-
-      const ahora = new Date();
-      const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
-      
-      try {
-        const [inicio, fin] = parametrosURL.horario_turno.split('-');
-        const [horaInicio, minInicio] = inicio.split(':').map(Number);
-        const [horaFin, minFin] = fin.split(':').map(Number);
-        
-        const minutosInicio = horaInicio * 60 + minInicio;
-        const minutosFin = horaFin * 60 + minFin;
-        
-        let dentroHorario = false;
-        
-        if (minutosInicio <= minutosFin) {
-          dentroHorario = horaActual >= minutosInicio && horaActual <= minutosFin;
-        } else {
-          dentroHorario = horaActual >= minutosInicio || horaActual <= minutosFin;
-        }
-
-        const alertDiv = document.getElementById('horario-alert');
-        const mensajeDiv = document.getElementById('horario-mensaje');
-        
-        if (dentroHorario) {
-          horarioValido = true;
-          alertDiv.className = 'horario-alert horario-permitido';
-          mensajeDiv.innerHTML = `✅ <strong>Horario Check-in válido</strong><br>
-            Ventana check-in: ${parametrosURL.horario_turno} | Hora actual: ${ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}<br>
-            <small>💡 Este es el horario para hacer check-in, antes del inicio de tu turno de trabajo</small>`;
-          return true;
-        } else {
-          horarioValido = false;
-          alertDiv.className = 'horario-alert horario-fuera';
-          
-          let minutosHastaTurno;
-          if (horaActual < minutosInicio) {
-            minutosHastaTurno = minutosInicio - horaActual;
-          } else {
-            minutosHastaTurno = (24 * 60) - horaActual + minutosInicio;
-          }
-          
-          const horasRestantes = Math.floor(minutosHastaTurno / 60);
-          const minRestantes = minutosHastaTurno % 60;
-          
-          mensajeDiv.innerHTML = `⏰ <strong>Fuera de horario de check-in</strong><br>
-            Ventana check-in: ${parametrosURL.horario_turno}<br>
-            Tiempo hasta ventana check-in: ${horasRestantes}h ${minRestantes}min<br><br>
-            <small>💡 Solo puedes hacer check-in durante la ventana horaria asignada<br>
-            Si es una emergencia, contacta a tu supervisor.</small>`;
-          
-          mostrarError('❌ No puedes hacer check-in fuera de tu horario asignado.');
-          return false;
-        }
-      } catch (error) {
-        horarioValido = false;
-        document.getElementById('horario-mensaje').innerHTML = '❌ Error en formato de horario check-in. Contacta al administrador.';
-        mostrarError('❌ Error en configuración de horario check-in.');
-        return false;
-      }
-    }
-
-    function validarZonasAutorizadas() {
-      const zonasInvalidas = zonasAutorizadas.filter(zona => !zonasConfiguracion[zona]);
-      
-      if (zonasInvalidas.length > 0) {
-        mostrarError(`❌ Zonas no válidas en configuración: ${zonasInvalidas.join(', ')}`);
-        return false;
-      }
-
-      if (zonasAutorizadas.length === 0) {
-        mostrarError('❌ No tienes zonas autorizadas para check-in.');
-        return false;
-      }
-
-      return true;
-    }
-
-    function mostrarInterfazCheckIn() {
-      if (!fechaValida || !horarioValido) {
-        return;
-      }
-
-      document.getElementById('horario-alert').style.display = 'none';
-      document.getElementById('fecha-alert').style.display = 'none';
-
-      mostrarSelectorZonas();
-      configurarSelectores();
-
-      const gpsButton = document.getElementById('gps-button');
-      gpsButton.disabled = false;
-      gpsButton.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
-
-      mostrarEstado('✅ Acceso validado. Selecciona tu zona de trabajo y procede con el check-in.');
-    }
-
-    function inicializarDeteccionDispositivo() {
-      deviceFingerprint = {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        language: navigator.language,
-        timestamp: Date.now(),
-        riskLevel: 'LOW'
-      };
-    }
-
-    function inicializarConectividad() {
-      conectividadOnline = navigator.onLine;
-      document.getElementById('connectivity-status').textContent = conectividadOnline ? 'Online' : 'Offline';
-    }
-
-    function validarConectividad() {
-      return Promise.resolve(conectividadOnline);
-    }
-
-    function mostrarSelectorZonas() {
-      const selector = document.getElementById('zona-selector');
-      const options = document.getElementById('zona-options');
-      
-      options.innerHTML = '';
-      zonasAutorizadas.forEach((zona) => {
-        const config = zonasConfiguracion[zona];
-        if (!config) return;
-        
-        const esPrincipal = zona === parametrosURL.zona_principal;
-        
-        const optionDiv = document.createElement('div');
-        optionDiv.className = `zone-option ${zonaSeleccionada === zona ? 'selected' : ''}`;
-        optionDiv.innerHTML = `
-          <div class="zone-name">
-            ${config.emoji} ${zona}
-            <span class="${esPrincipal ? 'zone-principal-badge' : 'zone-secondary-badge'}">
-              ${esPrincipal ? 'PRINCIPAL' : 'SECUNDARIA'}
-            </span>
-          </div>
-          <div class="zone-distance">
-            📏 Radio: ${config.radio}m | 🏷️ Tipo: ${config.tipo}
-            ${esPrincipal ? ' - Zona asignada según calendario' : ' - Requiere motivo'}
-          </div>
-        `;
-        
-        optionDiv.addEventListener('click', function() {
-          document.querySelectorAll('.zone-option').forEach(o => o.classList.remove('selected'));
-          document.querySelectorAll('.motivo-option').forEach(o => o.classList.remove('selected'));
-          
-          this.classList.add('selected');
-          zonaSeleccionada = zona;
-          motivoSeleccionado = null;
-          
-          // Reset motivo display
-          const motivoDisplay = document.getElementById('motivo-display');
-          motivoDisplay.innerHTML = '<div class="motivo-placeholder">👇 Selecciona un motivo válido</div>';
-          motivoDisplay.classList.remove('selected');
-          
-          const motivoSelector = document.getElementById('motivo-selector');
-          if (!esPrincipal) {
-            motivoSelector.style.display = 'block';
-            mostrarEstado('Zona secundaria seleccionada. Debes seleccionar un motivo válido.');
-          } else {
-            motivoSelector.style.display = 'none';
-            mostrarEstado('Zona principal seleccionada. Puedes proceder con el check-in.');
-          }
-          
-          validarSeleccionCompleta();
-        });
-        
-        options.appendChild(optionDiv);
-      });
-      
-      selector.style.display = 'block';
-    }
-
-    function configurarSelectores() {
-      document.querySelectorAll('.motivo-option').forEach(option => {
-        // Skip el display option
-        if (option.id === 'motivo-display') return;
-        
-        option.addEventListener('click', function() {
-          const motivo = this.dataset.motivo;
-          if (motivo === '') return;
-          
-          // Limpiar selecciones anteriores
-          document.querySelectorAll('.motivo-option').forEach(o => o.classList.remove('selected'));
-          
-          // Seleccionar este motivo
-          this.classList.add('selected');
-          motivoSeleccionado = motivo;
-          
-          // Actualizar el display del motivo seleccionado
-          const motivoDisplay = document.getElementById('motivo-display');
-          motivoDisplay.innerHTML = this.innerHTML;
-          motivoDisplay.classList.add('selected');
-          
-          validarSeleccionCompleta();
-        });
-      });
-    }
-
-    function validarSeleccionCompleta() {
-      const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
-      const tieneMotivo = motivoSeleccionado && motivoSeleccionado !== '';
-      
-      let puedeCheckIn = false;
-      let mensaje = '';
-      
-      if (!esZonaSecundaria) {
-        puedeCheckIn = true;
-        mensaje = 'Listo para check-in en zona principal';
-      } else if (esZonaSecundaria && tieneMotivo) {
-        puedeCheckIn = true;
-        mensaje = `Listo para check-in en ${zonaSeleccionada} - Motivo: ${obtenerTextoMotivo(motivoSeleccionado)}`;
-      } else {
-        puedeCheckIn = false;
-        mensaje = 'Debes seleccionar un motivo para trabajar en zona secundaria';
-      }
-      
-      const gpsButton = document.getElementById('gps-button');
-      gpsButton.disabled = !puedeCheckIn;
-      
-      if (puedeCheckIn) {
-        mostrarEstado(mensaje);
-        gpsButton.style.background = '#2ecc71';
-        gpsButton.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
-      } else {
-        mostrarError(mensaje);
-        gpsButton.style.background = '#95a5a6';
-        gpsButton.innerHTML = 'COMPLETA SELECCIÓN';
-      }
-    }
-
-    function obtenerTextoMotivo(motivo) {
-      const motivos = {
-        'incidencia': '🚨 Atendiendo incidencia',
-        'mantenimiento': '🔧 Mantenimiento programado',
-        'mantenimiento_urgencia': '⚡ Mantenimiento de urgencia',
-        'apoyo': '🤝 Apoyo a otro técnico',
-        'apoyo_interzonal': '🔄 Apoyo interzonal por carga de trabajo',
-        'ausencia_reemplazo': '👥 Ausencia de un compañero reemplazado',
-        'traslado': '🚚 Traslado de material/equipo',
-        'reunion': '💼 Reunión de trabajo',
-        'supervision': '👔 Supervisión/inspección',
-        'planificacion_especial': '📋 Cambio de planificación (turno especial)',
-        'emergencia': '🚨 Situación de emergencia',
-        'otro': '❓ Otro motivo'
-      };
-      return motivos[motivo] || motivo;
-    }
-
-    function validarUbicacionConZonasSecundarias(lat, lng) {
-      const zona = zonasConfiguracion[zonaSeleccionada];
-      if (!zona) {
-        return {
-          valido: false,
-          codigo: "ZONA_NO_CONFIGURADA",
-          mensaje: `Zona "${zonaSeleccionada}" no configurada`,
-          zona_utilizada: zonaSeleccionada,
-          es_zona_secundaria: false
-        };
-      }
-
-      const distancia = calcularDistancia(lat, lng, zona.lat, zona.lng);
-      const esZonaSecundaria = zonasSecundariasArray.includes(zonaSeleccionada);
-      const ubicacionReportada = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-
-      if (distancia <= zona.radio) {
-        return {
-          valido: true,
-          codigo: "UBICACION_VALIDA",
-          mensaje: `Check-in exitoso en ${zonaSeleccionada}`,
-          distancia: Math.round(distancia),
-          zona_utilizada: zonaSeleccionada,
-          es_zona_secundaria: esZonaSecundaria,
-          motivo_cambio: motivoSeleccionado,
-          metodo_checkin: "GPS",
-          ubicacion_reportada: ubicacionReportada,
-          ubicacion_verificada: "Válida",
-          observaciones_sistema: `GPS: ${Math.round(distancia)}m del centro de ${zonaSeleccionada}${esZonaSecundaria ? ' (zona secundaria)' : ''}`
-        };
-      }
-
-      return {
-        valido: false,
-        codigo: "ZONA_LEJANA",
-        mensaje: `Alejado de ${zonaSeleccionada}`,
-        distancia: Math.round(distancia),
-        zona_utilizada: zonaSeleccionada,
-        es_zona_secundaria: esZonaSecundaria,
-        motivo_cambio: motivoSeleccionado,
-        metodo_checkin: "Manual",
-        ubicacion_reportada: ubicacionReportada,
-        ubicacion_verificada: "No Válida"
-      };
-    }
-
-    // ========================================
-    // FUNCIONES MEJORADAS DE MANEJO DE ERRORES
-    // ========================================
-
-    // FUNCIÓN PARA ERRORES CRÍTICOS (supervisor inmediato)
-    async function manejarErrorCritico(tipo, datos, mensaje) {
-      console.log(`🚨 Error crítico detectado: ${tipo}`);
-      
-      // Registrar en historial
-      const evento = {
-        intento: intentosGPS + 1,
-        timestamp: new Date().toISOString(),
-        tipo: tipo,
-        detalle: mensaje,
-        datos_completos: datos,
-        nivel_criticidad: 'CRITICO'
-      };
-      
-      historialErroresGPS.push(evento);
-      
-      // Enviar inmediatamente al supervisor
-      enviarSupervisorInmediato(tipo, evento);
-      
-      // Bloquear interfaz completamente
-      bloquearInterfazCritica(mensaje);
-    }
-
-    // FUNCIÓN PARA ERRORES NORMALES (con reintentos) - MENSAJE PERSISTENTE
-    function manejarErrorConReintentos(tipo, evento, mensaje) {
-      console.log(`⚠️ Error normal detectado: ${tipo} (Intento ${intentosGPS}/${MAX_INTENTOS})`);
-      
-      // Añadir tipo y detalles al evento
-      evento.tipo = tipo;
-      evento.detalle = mensaje;
-      evento.nivel_criticidad = 'NORMAL';
-      
-      // Registrar en historial
-      historialErroresGPS.push(evento);
-      
-      // Verificar si se alcanzó el límite
-      if (intentosGPS >= MAX_INTENTOS) {
-        // Enviar todo el historial al supervisor
-        enviarHistorialCompleto('LIMITE_ALCANZADO');
-        bloquearInterfazLimite();
-      } else {
-        // Permitir reintento - MOSTRAR ERROR PRIMERO
-        mostrarErrorConOpcionReintento(mensaje, tipo);
-        // Luego resetear botón SIN cambiar mensaje
-        resetearBotonParaReintento();
-      }
-    }
-
-    // ENVÍO INMEDIATO AL SUPERVISOR (casos críticos)
-    function enviarSupervisorInmediato(tipo, evento) {
-      const url = webhookManual + 
-                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                 `&evento_critico=${tipo}` +
-                 `&timestamp=${Date.now()}` +
-                 `&coordenadas=${evento.datos_completos?.lat || 'N/A'},${evento.datos_completos?.lng || 'N/A'}` +
-                 `&accuracy=${evento.datos_completos?.accuracy || 'N/A'}` +
-                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                 `&zona_intentada=${encodeURIComponent(zonaSeleccionada || 'N/A')}` +
-                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                 `&detalle_error=${encodeURIComponent(evento.detalle)}` +
-                 `&dispositivo_ip=${evento.datos_completos?.dispositivo?.ip_publica || 'N/A'}` +
-                 `&dispositivo_timezone=${evento.datos_completos?.dispositivo?.timezone || 'N/A'}` +
-                 `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
-                 `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}`;
-      
-      fetch(url, {method: 'GET'})
-        .then(() => console.log('✅ Supervisor notificado inmediatamente'))
-        .catch(() => console.log('❌ Error notificando supervisor'));
-    }
-
-    // BLOQUEO DE INTERFAZ PARA CASOS CRÍTICOS
-    function bloquearInterfazCritica(mensaje) {
-      // Mostrar mensaje crítico
-      document.getElementById('status-message').innerHTML = `
-        <div class="error-box">
-          🚨 <strong>Error crítico detectado</strong><br><br>
-          ${mensaje}<br><br>
-          📧 <strong>Supervisor notificado automáticamente</strong><br>
-          🔔 Te contactará para revisar la situación<br><br>
-          📞 <strong>Contacto directo:</strong><br>
-          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
-          ⚠️ <strong>Este tipo de error requiere validación manual inmediata</strong>
-        </div>`;
-        
-      // Deshabilitar todos los botones permanentemente
-      const gpsButton = document.getElementById('gps-button');
-      gpsButton.disabled = true;
-      gpsButton.innerHTML = '🚨 ERROR CRÍTICO DETECTADO';
-      gpsButton.style.background = '#dc3545';
-      gpsButton.style.opacity = '0.7';
-      gpsButton.classList.remove('loading');
-      
-      const emergencyButton = document.getElementById('emergency-button');
-      emergencyButton.disabled = true;
-      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
-      emergencyButton.style.background = '#6c757d';
-      emergencyButton.style.opacity = '0.7';
-    }
-
-    // BLOQUEO DE INTERFAZ POR LÍMITE ALCANZADO
-    function bloquearInterfazLimite() {
-      document.getElementById('status-message').innerHTML = `
-        <div class="error-box">
-          ❌ <strong>Máximo de intentos alcanzado (${MAX_INTENTOS})</strong><br><br>
-          📧 <strong>Historial completo enviado al supervisor</strong><br>
-          🔔 Te contactará para procesar check-in manual<br><br>
-          📞 <strong>Contacta directamente:</strong><br>
-          <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
-          💡 <strong>Posibles soluciones:</strong><br>
-          • Verificar permisos de ubicación<br>
-          • Salir al exterior para mejor señal GPS<br>
-          • Reiniciar navegador si persiste
-        </div>`;
-        
-      // Deshabilitar botones
-      const gpsButton = document.getElementById('gps-button');
-      gpsButton.disabled = true;
-      gpsButton.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
-      gpsButton.style.background = '#dc3545';
-      gpsButton.style.opacity = '0.7';
-      gpsButton.classList.remove('loading');
-      
-      const emergencyButton = document.getElementById('emergency-button');
-      emergencyButton.disabled = true;
-      emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
-      emergencyButton.style.background = '#6c757d';
-      emergencyButton.style.opacity = '0.7';
-    }
-
-    // MOSTRAR ERROR CON OPCIÓN DE REINTENTO (MENSAJE PERSISTENTE)
-    function mostrarErrorConOpcionReintento(mensaje, tipo) {
-      const sugerencias = {
-        'GPS_IMPRECISO': 'Sal al exterior o busca zona con mejor cobertura GPS',
-        'FUERA_ZONA': 'Desplázate hacia el centro de tu zona asignada',
-        'ERROR_TECNICO_GPS': 'Verifica permisos de ubicación en el navegador',
-        'PERMISOS_GPS_DENEGADOS': 'Habilita permisos de ubicación en tu navegador',
-        'TIMEOUT_GPS': 'Busca zona con mejor cobertura GPS y reintenta'
-      };
-      
-      // MENSAJE PERSISTENTE que se mantiene visible
-      document.getElementById('status-message').innerHTML = `
-        <div class="warning-box" id="mensaje-persistente">
-          ⚠️ <strong>${mensaje}</strong><br><br>
-          🔄 <strong>Intento ${intentosGPS} de ${MAX_INTENTOS} completado</strong><br>
-          📊 <em>Evento registrado para auditoría</em><br><br>
-          💡 <strong>Sugerencia:</strong> ${sugerencias[tipo] || 'Reintenta tras verificar las condiciones'}<br><br>
-          🔄 <strong>Puedes hacer ${MAX_INTENTOS - intentosGPS} intento(s) más</strong><br>
-          📞 <strong>Si necesitas ayuda:</strong> Contacta a tu supervisor
-        </div>`;
-        
-      console.log(`📝 Mensaje persistente mostrado: ${tipo} - Intento ${intentosGPS}/${MAX_INTENTOS}`);
-    }
-
-    // RESETEAR BOTÓN PARA PERMITIR REINTENTO (SIN SOBRESCRIBIR MENSAJE)
-    function resetearBotonParaReintento() {
-      if (intentosGPS < MAX_INTENTOS) {
-        const button = document.getElementById('gps-button');
-        button.innerHTML = `REINTENTO ${intentosGPS + 1}/${MAX_INTENTOS} - OBTENER UBICACIÓN`;
-        button.disabled = false;
-        button.classList.remove('loading');
-        button.style.background = '#f39c12'; // Color naranja para reintentos
-        
-        // ❌ ELIMINADO: No llamar validarSeleccionCompleta() para no sobrescribir mensaje de error
-        // validarSeleccionCompleta();
-        
-        console.log(`🔄 Botón reseteado para reintento ${intentosGPS + 1}/${MAX_INTENTOS}`);
-      }
-    }
-
-    // ========================================
-    // FUNCIONES AUXILIARES MEJORADAS
-    // ========================================
-
-    // FUNCIÓN MEJORADA PARA OBTENER DATOS DEL DISPOSITIVO
-    async function obtenerDatosDispositivoMejorado() {
-        const dispositivo = {
-            // Datos básicos existentes
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            language: navigator.language,
-            
-            // NUEVOS: Datos de red y ubicación
-            ip_publica: await obtenerIPPublica().catch(() => 'no_disponible'),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            timezone_offset: new Date().getTimezoneOffset(),
-            
-            // NUEVOS: Capacidades del dispositivo  
-            screen_resolution: `${screen.width}x${screen.height}`,
-            color_depth: screen.colorDepth,
-            pixel_ratio: window.devicePixelRatio,
-            
-            // NUEVOS: Detección de entorno
-            touch_support: 'ontouchstart' in window,
-            webgl_info: obtenerWebGLInfo(),
-            
-            // NUEVOS: Detección anti-bot
-            webdriver: navigator.webdriver || false,
-            automation_indicators: detectarAutomation(),
-            
-            // Metadatos
-            timestamp_dispositivo: Date.now(),
-            connection_type: navigator.connection?.effectiveType || 'unknown'
-        };
-        
-        return dispositivo;
-    }
-
-    // OBTENER IP PÚBLICA
-    async function obtenerIPPublica() {
-        try {
-            const response = await fetch('https://api.ipify.org?format=json', {
-                timeout: 5000
-            });
-            const data = await response.json();
-            return data.ip;
-        } catch (error) {
-            console.log('No se pudo obtener IP pública:', error);
-            return 'no_disponible';
-        }
-    }
-
-    // INFORMACIÓN WebGL
-    function obtenerWebGLInfo() {
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
-            if (!gl) return 'no_disponible';
-            
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            return {
-                vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'unknown',
-                renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown'
-            };
-        } catch (error) {
-            return 'error';
-        }
-    }
-
-    // DETECTAR AUTOMATION (bots, scripts)
-    function detectarAutomation() {
-        const indicadores = [];
-        
-        // Selenium
-        if (window.navigator.webdriver) {
-            indicadores.push('SELENIUM_WEBDRIVER');
-        }
-        
-        // Phantom JS
-        if (window.callPhantom || window._phantom) {
-            indicadores.push('PHANTOM_JS');
-        }
-        
-        // Headless Chrome
-        if (navigator.userAgent.includes('HeadlessChrome')) {
-            indicadores.push('HEADLESS_CHROME');
-        }
-        
-        // Propiedades anómalas
-        if (navigator.plugins.length === 0 && !navigator.userAgent.includes('Mobile')) {
-            indicadores.push('SIN_PLUGINS_DESKTOP');
-        }
-        
-        return indicadores;
-    }
-
-    // ANALIZAR COHERENCIA DEL DISPOSITIVO
-    async function analizarCoherenciaDispositivo(coords, dispositivo) {
-        const anomalias = [];
-        
-        // 1. Timezone vs GPS
-        if (dispositivo.timezone && !dispositivo.timezone.includes('Europe') && 
-            coords.lat > 35 && coords.lat < 45 && coords.lng > -10 && coords.lng < 5) {
-            anomalias.push('TIMEZONE_GPS_INCOHERENTE');
-        }
-        
-        // 2. Indicadores de automation
-        if (dispositivo.automation_indicators.length > 0) {
-            anomalias.push('AUTOMATION_DETECTADA');
-        }
-        
-        // 3. WebGL sospechoso
-        if (dispositivo.webgl_info.renderer && 
-            (dispositivo.webgl_info.renderer.includes('SwiftShader') || 
-             dispositivo.webgl_info.renderer.includes('VMware'))) {
-            anomalias.push('WEBGL_EMULADOR');
-        }
-        
-        // 4. Resolución típica de emulador
-        if (dispositivo.screen_resolution === '393x851' || // Android emulator
-            dispositivo.screen_resolution === '375x667' || // iPhone emulator
-            dispositivo.screen_resolution === '1920x1080' && dispositivo.pixel_ratio === 1) {
-            anomalias.push('RESOLUCION_EMULADOR_TIPICA');
-        }
-        
-        // 5. User Agent vs capacidades
-        if (navigator.userAgent.includes('Mobile') && !dispositivo.touch_support) {
-            anomalias.push('MOBILE_SIN_TOUCH');
-        }
-        
-        return anomalias;
-    }
-
-    // CALCULAR DISTANCIA MÍNIMA AL BORDE DE ESPAÑA
-    function calcularDistanciaMinimaBordeEspana(lat, lng) {
-        // Coordenadas aproximadas de los bordes de España
-        const bordeEspana = {
-            norte: 43.79,
-            sur: 35.95,
-            este: 4.32,
-            oeste: -9.30
-        };
-        
-        let distanciaMinima = Infinity;
-        
-        // Distancia a cada borde
-        if (lat > bordeEspana.norte) {
-            distanciaMinima = Math.min(distanciaMinima, 
-                calcularDistancia(lat, lng, bordeEspana.norte, lng));
-        }
-        if (lat < bordeEspana.sur) {
-            distanciaMinima = Math.min(distanciaMinima, 
-                calcularDistancia(lat, lng, bordeEspana.sur, lng));
-        }
-        if (lng > bordeEspana.este) {
-            distanciaMinima = Math.min(distanciaMinima, 
-                calcularDistancia(lat, lng, lat, bordeEspana.este));
-        }
-        if (lng < bordeEspana.oeste) {
-            distanciaMinima = Math.min(distanciaMinima, 
-                calcularDistancia(lat, lng, lat, bordeEspana.oeste));
-        }
-        
-        return Math.round(distanciaMinima);
-    }
-
-    // ========================================
-    // FUNCIÓN exitoGPS MEJORADA
-    // ========================================
+    <div id="connectivity-status" class="connectivity-status connectivity-online">Online</div>
     
-    async function exitoGPS(position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-      const timestamp = position.timestamp || Date.now();
-
-      // VALIDACIONES BÁSICAS PRIMERO
-      
-      // 1. Coordenadas válidas
-      if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-        return manejarErrorCritico('COORDENADAS_INVALIDAS', {lat, lng, accuracy}, 'Coordenadas GPS inválidas detectadas');
-      }
-      
-      // 2. Coordenadas nulas (0,0) - Error común
-      if (lat === 0 && lng === 0) {
-        return manejarErrorCritico('COORDENADAS_NULAS', {lat, lng, accuracy}, 'GPS devolvió coordenadas nulas');
-      }
-      
-      // 3. Coordenadas fuera de rango mundial
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return manejarErrorCritico('COORDENADAS_FUERA_RANGO', {lat, lng, accuracy}, 'Coordenadas fuera del rango terrestre');
-      }
-
-      // OBTENER DATOS DEL DISPOSITIVO
-      const dispositivoCompleto = await obtenerDatosDispositivoMejorado();
-      const anomaliasDispositivo = await analizarCoherenciaDispositivo({lat, lng}, dispositivoCompleto);
-
-      // VALIDACIONES DE UBICACIÓN - CASOS CRÍTICOS (van directo al supervisor)
-      
-      // 4. Fuera de España - CRÍTICO
-      if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
-        return manejarErrorCritico('FUERA_ESPANA', {
-          lat, lng, accuracy, 
-          dispositivo: dispositivoCompleto,
-          anomalias: anomaliasDispositivo,
-          distancia_borde: calcularDistanciaMinimaBordeEspana(lat, lng)
-        }, 'Ubicación fuera de España detectada');
-      }
-      
-      // 5. GPS sospechosamente preciso - CRÍTICO
-      if (accuracy < 5) {
-        return manejarErrorCritico('GPS_SOSPECHOSO', {
-          lat, lng, accuracy,
-          dispositivo: dispositivoCompleto,
-          anomalias: anomaliasDispositivo
-        }, `GPS anormalmente preciso: ${accuracy}m`);
-      }
-      
-      // 6. Múltiples anomalías del dispositivo - CRÍTICO
-      if (anomaliasDispositivo.length >= 2) {
-        return manejarErrorCritico('DISPOSITIVO_SOSPECHOSO', {
-          lat, lng, accuracy,
-          dispositivo: dispositivoCompleto,
-          anomalias: anomaliasDispositivo
-        }, 'Dispositivo con múltiples patrones sospechosos');
-      }
-
-      // CASOS NORMALES - Permiten reintentos hasta límite
-      
-      // Incrementar contador unificado
-      intentosGPS++;
-      ubicacionActual = { lat, lng, accuracy };
-
-      // Crear registro del evento
-      const evento = {
-        intento: intentosGPS,
-        timestamp: new Date().toISOString(),
-        lat, lng, accuracy,
-        dispositivo: dispositivoCompleto,
-        anomalias: anomaliasDispositivo
-      };
-
-      // 7. GPS muy impreciso - NORMAL (reintentos)
-      if (accuracy > 100) {
-        return manejarErrorConReintentos('GPS_IMPRECISO', evento, `GPS poco preciso: ${Math.round(accuracy)}m`);
-      }
-
-      // 8. Validación de zona asignada - NORMAL (reintentos)
-      const validacion = validarUbicacionConZonasSecundarias(lat, lng);
-      
-      if (!validacion.valido) {
-        evento.distancia_zona = validacion.distancia;
-        evento.zona_intentada = zonaSeleccionada;
-        return manejarErrorConReintentos('FUERA_ZONA', evento, `Fuera de zona ${zonaSeleccionada}: ${validacion.distancia}m`);
-      }
-
-      // ✅ ÉXITO - Todo validado correctamente
-      evento.tipo = 'EXITO';
-      evento.zona_final = zonaSeleccionada;
-      evento.es_zona_secundaria = zonaSeleccionada !== parametrosURL.zona_principal;
-      evento.motivo_zona_secundaria = motivoSeleccionado;
-      
-      // Añadir a historial y enviar resultado exitoso
-      historialErroresGPS.push(evento);
-      
-      // CREAR RESUMEN TAMBIÉN PARA CASOS EXITOSOS (KPIs PARA NOTION)
-      const resumenExitoso = {
-        total_intentos: intentosGPS,
-        motivo_envio: 'CHECK_IN_EXITOSO',
-        tipos_errores: historialErroresGPS.filter(h => h.tipo !== 'EXITO').map(h => h.tipo),
-        resultado_final: 'EXITOSO',
-        timestamp_inicio: historialErroresGPS[0]?.timestamp,
-        timestamp_fin: evento.timestamp,
-        
-        // KPIs CALCULADOS PARA NOTION
-        duracion_total_segundos: Math.floor((new Date(evento.timestamp) - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
-        distancia_promedio: Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || validacion.distancia || 0,
-        accuracy_promedio: Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length),
-        variacion_distancia: historialErroresGPS.length > 1 ? Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) : 0,
-        
-        // KPIs CATEGORIZADOS PARA NOTION
-        eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
-        categoria_distancia: categorizarDistancia(validacion.distancia || 0),
-        precision_gps_categoria: categorizarPrecision(Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length)),
-        dispositivo_estable: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
-        plataforma_dispositivo: dispositivoCompleto.platform || 'unknown',
-        
-        // CONTEXTO FINAL
-        zona_final: zonaSeleccionada,
-        es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal
-      };
-      
-      validacion.device_fingerprint = dispositivoCompleto;
-      validacion.gps_accuracy = Math.round(accuracy);
-      validacion.horario_turno = parametrosURL.horario_turno;
-      validacion.fecha_evento = parametrosURL.fecha_evento;
-      validacion.historial_completo = historialErroresGPS;
-      validacion.resumen_eventos = resumenExitoso; // AÑADIDO
-      
-      enviarResultadoCheckIn(lat, lng, accuracy, validacion);
-    }
-
-    // ========================================
-    // FUNCIÓN errorGPS MEJORADA
-    // ========================================
-
-    function errorGPS(error) {
-      // INCREMENTAR contador unificado
-      intentosGPS++;
-      
-      let tipoError = '';
-      let mensajeError = '';
-      let esCritico = false;
-      
-      // Clasificar tipo de error técnico
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          tipoError = 'PERMISOS_GPS_DENEGADOS';
-          mensajeError = 'Permisos de ubicación denegados por el usuario';
-          esCritico = false; // Puede solucionarse
-          break;
-          
-        case error.POSITION_UNAVAILABLE:
-          tipoError = 'GPS_NO_DISPONIBLE';
-          mensajeError = 'Servicio GPS no disponible en este dispositivo';
-          esCritico = true; // Problema hardware/software grave
-          break;
-          
-        case error.TIMEOUT:
-          tipoError = 'TIMEOUT_GPS';
-          mensajeError = 'Tiempo agotado obteniendo ubicación GPS';
-          esCritico = false; // Puede ser temporal
-          break;
-          
-        default:
-          tipoError = 'ERROR_GPS_DESCONOCIDO';
-          mensajeError = `Error GPS desconocido (código: ${error.code})`;
-          esCritico = true; // Error no identificado es sospechoso
-          break;
-      }
-      
-      // Crear evento del error
-      const evento = {
-        intento: intentosGPS,
-        timestamp: new Date().toISOString(),
-        tipo: tipoError,
-        detalle: mensajeError,
-        codigo_error: error.code,
-        mensaje_navegador: error.message,
-        nivel_criticidad: esCritico ? 'CRITICO' : 'NORMAL'
-      };
-      
-      console.log(`${esCritico ? '🚨' : '⚠️'} Error GPS: ${tipoError} (Intento ${intentosGPS}/${MAX_INTENTOS})`);
-      
-      // MANEJO SEGÚN CRITICIDAD
-      if (esCritico) {
-        // Errores críticos van directo al supervisor
-        historialErroresGPS.push(evento);
-        enviarSupervisorInmediato(tipoError, evento);
-        bloquearInterfazCritica(mensajeError);
-      } else {
-        // Errores normales siguen lógica de reintentos
-        manejarErrorConReintentos(tipoError, evento, mensajeError);
-      }
-    }
-
-    // FUNCIÓN MEJORADA PARA ENVIAR HISTORIAL COMPLETO (SIN DUPLICACIÓN)
-    function enviarHistorialCompleto(motivo) {
-      const resumen = {
-        total_intentos: intentosGPS,
-        motivo_envio: motivo,
-        tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
-        resultado_final: 'FALLIDO',
-        timestamp_inicio: historialErroresGPS[0]?.timestamp,
-        timestamp_fin: new Date().toISOString(),
-        
-        // AGREGADOS ÚTILES (no duplicados)
-        duracion_total_segundos: Math.floor((Date.now() - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
-        distancia_promedio: Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || 0,
-        accuracy_promedio: Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length),
-        variacion_distancia: Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) || 0,
-        
-        // KPIs CATEGORIZADOS PARA NOTION  
-        eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
-        categoria_distancia: categorizarDistancia(Math.round(historialErroresGPS.filter(h => h.distancia_zona).reduce((acc, h) => acc + h.distancia_zona, 0) / historialErroresGPS.filter(h => h.distancia_zona).length) || 0),
-        precision_gps_categoria: categorizarPrecision(Math.round(historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length)),
-        dispositivo_estable: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
-        plataforma_dispositivo: historialErroresGPS[0]?.dispositivo?.platform || 'unknown',
-        mismo_dispositivo: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
-        variacion_distancia: Math.max(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) - Math.min(...historialErroresGPS.filter(h => h.distancia_zona).map(h => h.distancia_zona)) || 0
-      };
-      
-      const url = webhookManual +
-                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                 `&zona_intentada=${encodeURIComponent(zonaSeleccionada)}` +
-                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
-                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                 `&motivo_envio=${motivo}` +
-                 `&total_intentos=${intentosGPS}` +
-                 `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
-                 `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
-                 `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
-                 `&timestamp=${Math.floor(Date.now()/1000)}`;
-      
-      fetch(url, {method: 'GET'})
-        .then(() => console.log('✅ Historial completo enviado al supervisor'))
-        .catch(() => console.log('❌ Error enviando historial al supervisor'));
-    }
-
-    // ========================================
-    // FUNCIONES ACTUALIZADAS PARA INICIALIZACIÓN
-    // ========================================
-
-    // ACTUALIZAR LA FUNCIÓN iniciarCheckIn PARA USAR LA NUEVA LÓGICA
-    function iniciarCheckIn() {
-        const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
-        if (esZonaSecundaria && (!motivoSeleccionado || motivoSeleccionado === '')) {
-            mostrarError('Debes seleccionar un motivo para trabajar en zona secundaria');
-            return;
-        }
-
-        if (!fechaValida || !horarioValido) {
-            mostrarError('No tienes acceso válido para hacer check-in en este momento');
-            return;
-        }
-
-        // VALIDACIÓN CRÍTICA: Verificar límite de intentos ANTES de proceder
-        if (intentosGPS >= MAX_INTENTOS) {
-            bloquearInterfazLimite();
-            return;
-        }
-
-        // Validar conectividad
-        validarConectividad().then(tieneConexion => {
-            if (!tieneConexion) {
-                mostrarError('Sin conexión a internet. Verifica tu conectividad.');
-                return;
-            }
-
-            if (!navigator.geolocation) {
-                manejarErrorCritico('GEOLOCATION_NO_SOPORTADO', {}, 'GPS no soportado en este dispositivo');
-                return;
-            }
-
-            // Mostrar estado de progreso
-            mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS + 1}/${MAX_INTENTOS})`);
-
-            const button = document.getElementById('gps-button');
-            button.innerHTML = `Obteniendo GPS... (${intentosGPS + 1}/${MAX_INTENTOS})`;
-            button.disabled = true;
-            button.classList.add('loading');
-
-            // Obtener posición GPS
-            navigator.geolocation.getCurrentPosition(
-                exitoGPS,  // Usar la nueva función exitoGPS mejorada
-                errorGPS,  // Usar la nueva función errorGPS mejorada
-                { 
-                    enableHighAccuracy: true, 
-                    timeout: 15000,
-                    maximumAge: 60000
-                }
-            );
-        });
-    }
-
-    // ========================================
-    // FUNCIONES ORIGINALES MANTENIDAS
-    // ========================================
-
-    async function enviarResultadoCheckIn(lat, lng, accuracy, validacion) {
-      console.log('🚀 Iniciando envío de resultado check-in...');
-      console.log('📍 Coordenadas:', lat, lng, 'Precisión:', accuracy);
-      console.log('✅ Validación:', validacion);
-      
-      const tieneConexion = await validarConectividad();
-      if (!tieneConexion) {
-        console.log('❌ Sin conexión detectada');
-        mostrarError('Perdida conexión antes del envío. Reintenta cuando tengas conexión.');
-        return;
-      }
-
-      const webhook = validacion.valido ? webhookExitoso : webhookManual;
-      console.log(`📡 Usando webhook: ${validacion.valido ? 'EXITOSO' : 'MANUAL'}`);
-      
-      const fechaActual = new Date();
-      const url = webhook + 
-                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                 `&zonas_secundarias=${encodeURIComponent(parametrosURL.zonas_secundarias)}` +
-                 `&zona_utilizada=${encodeURIComponent(validacion.zona_utilizada)}` +
-                 `&es_zona_secundaria=${validacion.es_zona_secundaria}` +
-                 `&motivo_cambio=${encodeURIComponent(validacion.motivo_cambio || '')}` +
-                 `&turno=${encodeURIComponent(parametrosURL.turno)}` +
-                 `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` +
-                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                 `&lat=${lat}&lng=${lng}&accuracy=${accuracy}` +
-                 `&ubicacion_reportada=${encodeURIComponent(validacion.ubicacion_reportada || '')}` +
-                 `&ubicacion_verificada=${encodeURIComponent(validacion.ubicacion_verificada || '')}` +
-                 `&distancia_zona_metros=${validacion.distancia || 0}` +
-                 `&metodo_check_in=${encodeURIComponent(validacion.metodo_checkin || '')}` +
-                 `&observaciones_sistema=${encodeURIComponent(validacion.observaciones_sistema || '')}` +
-                 `&device_type=${encodeURIComponent(getDeviceType())}` +
-                 `&user_agent=${encodeURIComponent(validacion.device_fingerprint?.userAgent || '')}` +
-                 `&device_risk_level=${validacion.device_fingerprint?.riskLevel || ''}` +
-                 `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` +
-                 `&validacion_codigo=${validacion.codigo}` +
-                 `&fecha_check=${parametrosURL.fecha_evento}` +
-                 `&hora_check=${encodeURIComponent(fechaActual.toTimeString().split(' ')[0])}` +
-                 `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
-                 `&resumen_eventos=${encodeURIComponent(JSON.stringify(validacion.resumen_eventos || {}))}` +
-                 `&timestamp=${Math.floor(Date.now()/1000)}`;
-
-      console.log('🔗 URL completa del webhook:', url);
-
-      try {
-        if (validacion.valido) {
-          console.log('✅ Enviando resultado EXITOSO...');
-          mostrarPaginaConfirmacion(validacion);
-          
-          // Enviar inmediatamente, no con timeout
-          const response = await fetch(url, {method: 'GET'});
-          console.log('📨 Respuesta webhook exitoso:', response.status, response.statusText);
-          
-          if (!response.ok) {
-            console.error('❌ Error en webhook exitoso:', response.status);
-            // Mostrar mensaje de error pero mantener confirmación
-            document.getElementById('status-message').innerHTML = `
-              <div class="warning-box">
-                ⚠️ Check-in procesado localmente pero error enviando a servidor<br>
-                📞 Contacta a tu supervisor si necesitas confirmación
-              </div>`;
-          } else {
-            console.log('✅ Webhook exitoso enviado correctamente');
-          }
-        } else {
-          console.log('❌ Enviando resultado para VALIDACIÓN MANUAL...');
-          mostrarResultadoError(validacion);
-          
-          const response = await fetch(url, {method: 'GET'});
-          console.log('📨 Respuesta webhook manual:', response.status, response.statusText);
-          
-          if (!response.ok) {
-            console.error('❌ Error en webhook manual:', response.status);
-          } else {
-            console.log('✅ Webhook manual enviado correctamente');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error crítico enviando webhook:', error);
-        
-        // Mostrar error específico al usuario
-        document.getElementById('status-message').innerHTML = `
-          <div class="error-box">
-            🚨 <strong>Error enviando datos al servidor</strong><br><br>
-            📝 Tu check-in ha sido procesado localmente<br>
-            📞 <strong>IMPORTANTE:</strong> Contacta inmediatamente a tu supervisor<br>
-            📧 Email: ${parametrosURL.supervisor}<br>
-            📱 Teléfono: ${parametrosURL.telefono}<br><br>
-            🔍 <strong>Error técnico:</strong> ${error.message}
-          </div>`;
-      }
-    }
-
-    function mostrarPaginaConfirmacion(validacion) {
-      document.getElementById('checkin-content').style.display = 'none';
-      document.getElementById('confirmation-content').style.display = 'block';
-      
-      const detalles = document.getElementById('confirmation-details');
-      const tipoZona = validacion.es_zona_secundaria ? 'secundaria' : 'principal';
-      const motivoTexto = validacion.motivo_cambio ? obtenerTextoMotivo(validacion.motivo_cambio) : 'No aplicable';
-      
-      detalles.innerHTML = `
-        <div class="confirmation-item">
-          <span class="confirmation-label">Técnico:</span>
-          <span class="confirmation-value">${parametrosURL.tecnico}</span>
+    <div class="container">
+        <div class="header">
+            <div class="icon">📍</div>
+            <h1>CHECK-IN TÉCNICOS</h1>
+            <p>Sistema de Control de Presencia v2.0</p>
         </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Fecha:</span>
-          <span class="confirmation-value">${parametrosURL.fecha_evento}</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Hora check-in:</span>
-          <span class="confirmation-value">${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Zona:</span>
-          <span class="confirmation-value">${validacion.zona_utilizada} (${tipoZona})</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Distancia:</span>
-          <span class="confirmation-value">${validacion.distancia}m del centro</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Motivo:</span>
-          <span class="confirmation-value">${motivoTexto}</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Turno:</span>
-          <span class="confirmation-value">${parametrosURL.turno}</span>
-        </div>
-        <div class="confirmation-item">
-          <span class="confirmation-label">Horario:</span>
-          <span class="confirmation-value">${parametrosURL.horario_turno}</span>
-        </div>
-      `;
-    }
 
-    function mostrarResultadoError(validacion) {
-      const statusDiv = document.getElementById('status-message');
-      statusDiv.innerHTML = `
-        <div class="error-box">
-          ❌ <strong>Check-in requiere validación manual</strong><br><br>
-          📍 <strong>Zona intentada:</strong> ${validacion.zona_utilizada}<br>
-          📏 <strong>Distancia:</strong> ${validacion.distancia}m<br>
-          ${validacion.motivo_cambio ? `📝 <strong>Motivo:</strong> ${obtenerTextoMotivo(validacion.motivo_cambio)}<br>` : ''}
-          📧 Supervisor notificado para validación manual
-        </div>`;
-        
-      const gpsButton = document.getElementById('gps-button');
-      gpsButton.disabled = true;
-      gpsButton.innerHTML = 'SUPERVISOR NOTIFICADO';
-      gpsButton.style.background = '#6c757d';
-    }
+        <!-- Información del técnico -->
+        <div class="info-box">
+            <div class="info-item"><strong>👤 Técnico:</strong> <span id="tecnico-nombre">Cargando...</span></div>
+            <div class="info-item"><strong>🎯 Zona Principal:</strong> <span id="zona-principal">Cargando...</span></div>
+            <div class="info-item"><strong>📍 Zonas Secundarias:</strong> <span id="zonas-secundarias">Verificando...</span></div>
+            <div class="info-item"><strong>💼 Turno de trabajo:</strong> <span id="turno-info">Cargando...</span></div>
+            <div class="info-item"><strong>⏰ Horario Check-in:</strong> <span id="horario-turno">Cargando...</span></div>
+            <div class="info-item"><strong>🕒 Hora actual:</strong> <span id="hora-actual">--:--:--</span></div>
+        </div>
 
-    function calcularDistancia(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const rad = Math.PI / 180;
-      const dLat = (lat2 - lat1) * rad;
-      const dLon = (lon2 - lon1) * rad;
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
+        <!-- Alertas de validación -->
+        <div id="fecha-alert" class="fecha-alert" style="display: none;"></div>
+        <div id="horario-alert" class="horario-alert" style="display: none;">
+            <div id="horario-mensaje">⏰ Validando horario de turno...</div>
+        </div>
 
-    function getDeviceType() {
-      const ua = navigator.userAgent.toLowerCase();
-      if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) return 'Mobile';
-      if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
-      return 'Desktop';
-    }
+        <!-- Selector de zonas -->
+        <div id="zona-selector" class="zona-selector" style="display: none;">
+            <h4>🎯 Zona de trabajo para este check-in:</h4>
+            <div class="zona-info">Por defecto: Zona principal según calendario. Solo puedes seleccionar zonas autorizadas para ti.</div>
+            <div id="zona-options"></div>
+        </div>
 
-    function mostrarEstado(mensaje) {
-      document.getElementById('status-message').innerHTML = `<div class='success-box'>${mensaje}</div>`;
-    }
+        <!-- Selector de motivos -->
+        <div id="motivo-selector" class="motivo-selector">
+            <h4>📝 Motivo del trabajo en zona secundaria: <span class="required">*</span></h4>
+            <div class="motivo-info">Requerido cuando trabajas fuera de tu zona principal asignada</div>
+            
+            <div id="motivo-display" class="motivo-option">
+                <div class="motivo-placeholder">👆 Selecciona un motivo válido</div>
+            </div>
+            
+            <div class="motivo-option" data-motivo="incidencia">🚨 Atendiendo incidencia</div>
+            <div class="motivo-option" data-motivo="mantenimiento">🔧 Mantenimiento programado</div>
+            <div class="motivo-option" data-motivo="mantenimiento_urgencia">⚡ Mantenimiento de urgencia</div>
+            <div class="motivo-option" data-motivo="apoyo">🤝 Apoyo a otro técnico</div>
+            <div class="motivo-option" data-motivo="apoyo_interzonal">🔄 Apoyo interzonal por carga de trabajo</div>
+            <div class="motivo-option" data-motivo="ausencia_reemplazo">👥 Ausencia de un compañero reemplazado</div>
+            <div class="motivo-option" data-motivo="traslado">🚚 Traslado de material/equipo</div>
+            <div class="motivo-option" data-motivo="reunion">💼 Reunión de trabajo</div>
+            <div class="motivo-option" data-motivo="supervision">👔 Supervisión/inspección</div>
+            <div class="motivo-option" data-motivo="planificacion_especial">📋 Cambio de planificación (turno especial)</div>
+            <div class="motivo-option" data-motivo="emergencia">🚨 Situación de emergencia</div>
+            <div class="motivo-option" data-motivo="otro">❓ Otro motivo</div>
+        </div>
 
-    function mostrarError(mensaje) {
-      document.getElementById('status-message').innerHTML = `<div class='error-box'>${mensaje}</div>`;
-    }
+        <!-- Estado del sistema -->
+        <div id="status-message">
+            <div class="warning-box">Validando parámetros de acceso...</div>
+        </div>
 
-    function contactarSupervisor() {
-      const tel = parametrosURL.telefono || '';
-      if (tel) {
-        if (confirm('📞 ¿Quieres contactar a tu supervisor?\n\n✅ SÍ: Será notificado para hacer check-in manual\n❌ NO: Cancelar')) {
-          const infoSolicitud = zonaSeleccionada !== parametrosURL.zona_principal ? 
-            `Zona solicitada: ${zonaSeleccionada}. Motivo: ${obtenerTextoMotivo(motivoSeleccionado || 'no especificado')}` :
-            `Zona principal: ${parametrosURL.zona_principal}`;
-          
-          // ENVÍO: Solo cuando el técnico solicita contacto manual
-          enviarSolicitudManual(infoSolicitud);
-          
-          document.getElementById('status-message').innerHTML = `
+        <!-- Contenido principal -->
+        <div id="checkin-content">
+            <button id="gps-button" class="button" onclick="iniciarCheckIn()" disabled>VALIDANDO ACCESO...</button>
+            <button id="emergency-button" class="button button-emergency" onclick="contactarSupervisor()">CONTACTAR SUPERVISOR</button>
+        </div>
+
+        <!-- Página de confirmación -->
+        <div id="confirmation-content" class="confirmation-page" style="display: none;">
+            <div class="confirmation-icon">✅</div>
+            <h2>Check-in Completado</h2>
+            <p>Tu presencia ha sido registrada exitosamente</p>
+            <div id="confirmation-details" class="confirmation-details"></div>
             <div class="success-box">
-              📧 <strong>Supervisor notificado correctamente</strong><br><br>
-              🔔 Tu supervisor ${parametrosURL.supervisor} ha sido informado<br>
-              📞 Te contactará en breve para procesar check-in manual<br><br>
-              📋 <strong>Información enviada:</strong><br>
-              • Zona solicitada: ${zonaSeleccionada}<br>
-              ${motivoSeleccionado ? `• Motivo: ${obtenerTextoMotivo(motivoSeleccionado)}<br>` : ''}
-              • Historial errores GPS: ${historialErroresGPS.length} error(es)<br><br>
-              📱 <strong>Llamada directa:</strong><br>
-              <a href="tel:${tel}">${tel}</a>
-            </div>`;
-          
-          document.getElementById('gps-button').disabled = true;
-          document.getElementById('emergency-button').disabled = true;
-          document.getElementById('emergency-button').innerHTML = '✅ ENVIADO';
-          document.getElementById('emergency-button').style.background = '#28a745';
+                <strong>¿Qué pasa ahora?</strong><br><br>
+                📊 Tus datos se han enviado al sistema<br>
+                📧 Tu supervisor ha sido notificado<br>
+                📱 Puedes cerrar esta página<br><br>
+                Si tienes algún problema durante tu turno, contacta a tu supervisor.
+            </div>
+            <button class="button" onclick="cerrarPagina()">CERRAR</button>
+        </div>
+
+        <div class="footer">
+            Datos protegidos | GPS activado | Integrado con Notion v2.0
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // 🔧 CONFIGURACIÓN DEL SISTEMA
+        // ========================================
+        
+        // CONSTANTES PRINCIPALES (modificables fácilmente)
+        const CONFIG = {
+            // Límites de reintentos y umbrales
+            MAX_INTENTOS: 3,
+            UMBRAL_GPS_SOSPECHOSO: 5,           // metros - GPS más preciso = sospechoso
+            UMBRAL_GPS_IMPRECISO: 100,          // metros - GPS menos preciso = problemático  
+            UMBRAL_SCORE_POTENCIALMENTE_FALSO: 7, // Score ≥7 = GPS potencialmente falso
+            
+            // Distancias geográficas de referencia
+            DISTANCIA_FABRICA_CERCA: 1000,      // metros - cerca de fábrica
+            DISTANCIA_FABRICA_LEJOS: 10000,     // metros - lejos de fábrica
+            DISTANCIA_FABRICA_EXTREMO: 50000,   // metros - muy lejos de fábrica
+            DISTANCIA_IP_GPS_SOSPECHOSA: 100000, // metros - diferencia IP-GPS sospechosa
+            
+            // Coordenadas de referencia (fábrica principal)
+            FABRICA_LAT: 41.53838,
+            FABRICA_LNG: 1.8679,
+            
+            // URLs de integración
+            WEBHOOK_EXITOSO: 'https://hook.eu2.make.com/ce7vo1vgbpboaf9moajxp28uv7dh5mnm',
+            WEBHOOK_MANUAL: 'https://hook.eu2.make.com/l2fczz9kmprj996pxf7tfbtnvw2nmak0'
+        };
+        
+        // CONFIGURACIÓN DE ZONAS (coordenadas y radios)
+        const ZONAS_CONFIG = {
+            "Línea-A": { 
+                lat: 41.53838, lng: 1.8679, radio: 450, 
+                tipo: "produccion", codigo: "LA", emoji: "🏭" 
+            },
+            "Línea-B": { 
+                lat: 40.4170, lng: -3.7070, radio: 450, 
+                tipo: "produccion", codigo: "LB", emoji: "🏭" 
+            },
+            "Línea-C": { 
+                lat: 40.4190, lng: -3.7090, radio: 450, 
+                tipo: "produccion", codigo: "LC", emoji: "🏭" 
+            },
+            "Utilities": { 
+                lat: 40.4200, lng: -3.7100, radio: 600, 
+                tipo: "utilities", codigo: "UTIL", emoji: "⚡" 
+            },
+            "Laboratorio": { 
+                lat: 40.4150, lng: -3.7050, radio: 400, 
+                tipo: "laboratorio", codigo: "LAB", emoji: "🔬" 
+            },
+            "Mantenimiento": { 
+                lat: 40.4180, lng: -3.7080, radio: 700, 
+                tipo: "mantenimiento", codigo: "MANT", emoji: "🔧" 
+            },
+            "Transporte": { 
+                lat: 40.4220, lng: -3.7120, radio: 800, 
+                tipo: "transporte", codigo: "TRANS", emoji: "🚚" 
+            },
+            "Almacén": { 
+                lat: 40.4160, lng: -3.7040, radio: 500, 
+                tipo: "almacen", codigo: "ALM", emoji: "📦" 
+            },
+            "Oficinas": { 
+                lat: 40.4210, lng: -3.7110, radio: 300, 
+                tipo: "oficinas", codigo: "OFIC", emoji: "🏢" 
+            },
+            "Todas": { 
+                lat: 40.4168, lng: -3.7038, radio: 1000, 
+                tipo: "general", codigo: "ALL", emoji: "🌟" 
+            }
+        };
+        
+        // PESOS PARA SCORING DE ANOMALÍAS (modificables para ajustar sensibilidad)
+        const PESOS_ANOMALIAS = {
+            // CRÍTICAS (peso 3) - Indicadores fuertes de manipulación
+            'WEBGL_EMULADOR': 3,
+            'AUTOMATION_DETECTADA': 3,
+            'LEJOS_DE_FABRICA_EXTREMO': 3,
+            'IP_GPS_DISTANCIA_SOSPECHOSA': 3,
+            
+            // ALTAS (peso 2) - Patrones sospechosos pero posibles
+            'GPS_DEMASIADO_PRECISO': 2,
+            'LEJOS_DE_FABRICA': 2,
+            'GPS_TIMEZONE_INCOHERENTE': 2,
+            'IP_TIMEZONE_INCOHERENTE': 2,
+            
+            // MENORES (peso 1) - Indicadores débiles
+            'RESOLUCION_EMULADOR_TIPICA': 1,
+            'MOBILE_SIN_TOUCH': 1,
+            'TIMEZONE_GPS_INCOHERENTE': 1,
+            'GPS_IMPRECISO_EN_FABRICA': 1
+        };
+        
+        // DICCIONARIO DE MOTIVOS PARA ZONAS SECUNDARIAS
+        const MOTIVOS_TEXTO = {
+            'incidencia': '🚨 Atendiendo incidencia',
+            'mantenimiento': '🔧 Mantenimiento programado',
+            'mantenimiento_urgencia': '⚡ Mantenimiento de urgencia',
+            'apoyo': '🤝 Apoyo a otro técnico',
+            'apoyo_interzonal': '🔄 Apoyo interzonal por carga de trabajo',
+            'ausencia_reemplazo': '👥 Ausencia de un compañero reemplazado',
+            'traslado': '🚚 Traslado de material/equipo',
+            'reunion': '💼 Reunión de trabajo',
+            'supervision': '👔 Supervisión/inspección',
+            'planificacion_especial': '📋 Cambio de planificación (turno especial)',
+            'emergencia': '🚨 Situación de emergencia',
+            'otro': '❓ Otro motivo'
+        };
+        
+        // ========================================
+        // 📋 VARIABLES GLOBALES DEL SISTEMA
+        // ========================================
+        
+        let parametrosURL = {};
+        let intentosGPS = 0; // Contador unificado para todos los errores
+        let ubicacionActual = null;
+        let zonaSeleccionada = null;
+        let motivoSeleccionado = null;
+        let zonasSecundariasArray = [];
+        let deviceFingerprint = {};
+        let conectividadOnline = true;
+        let fechaValida = false;
+        let horarioValido = false;
+        let zonasAutorizadas = [];
+        let historialErroresGPS = []; // Historial completo de todos los eventos
+        
+        // ========================================
+        // ⚙️ INICIALIZACIÓN DEL SISTEMA
+        // ========================================
+        
+        window.onload = function() {
+            cargarParametros();
+            actualizarHora();
+            setInterval(actualizarHora, 1000);
+            inicializarDeteccionDispositivo();
+            inicializarConectividad();
+            validarAcceso();
+        };
+        
+        function cargarParametros() {
+            const params = new URLSearchParams(window.location.search);
+            parametrosURL = {
+                tecnico: params.get('t') || '',
+                zona_principal: params.get('z') || '',
+                zonas_secundarias: params.get('zs') || '',
+                turno: params.get('tu') || '',
+                supervisor: params.get('s') || '',
+                telefono: params.get('tel') || '',
+                fecha_evento: params.get('f') || '',
+                horario_turno: params.get('h') || '',
+                hash_validacion: params.get('hash') || ''
+            };
+            
+            // Procesar zonas autorizadas (principal + secundarias)
+            zonasAutorizadas = [];
+            if (parametrosURL.zona_principal) {
+                zonasAutorizadas.push(parametrosURL.zona_principal);
+            }
+            if (parametrosURL.zonas_secundarias) {
+                zonasSecundariasArray = parametrosURL.zonas_secundarias.split(',').map(z => z.trim());
+                zonasAutorizadas.push(...zonasSecundariasArray);
+            }
+            
+            // Actualizar interfaz con datos cargados
+            actualizarInterfazConParametros();
+            
+            // Zona seleccionada por defecto: zona principal
+            zonaSeleccionada = parametrosURL.zona_principal;
+            motivoSeleccionado = null;
         }
-      } else {
-        mostrarError("❌ Teléfono del supervisor no disponible.");
-      }
-    }
-
-    function enviarSolicitudManual(infoSolicitud) {
-      const url = webhookManual +
-                 `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                 `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                 `&zona_solicitada=${encodeURIComponent(zonaSeleccionada)}` +
-                 `&motivo_cambio=${encodeURIComponent(motivoSeleccionado || '')}` +
-                 `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                 `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
-                 `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                 `&error_message=SOLICITUD_CHECKIN_MANUAL` +
-                 `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
-                 `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
-                 `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
-                 `&timestamp=${Math.floor(Date.now()/1000)}`;
-      
-      fetch(url, {method: 'GET'})
-        .then(() => console.log('✅ Solicitud manual enviada al supervisor'))
-        .catch(() => console.log('❌ Error enviando solicitud manual'));
-    }
-
-    function cerrarPagina() {
-      if (confirm('¿Estás seguro de que quieres cerrar la página?')) {
-        window.close();
-        setTimeout(() => {
-          window.location.href = 'about:blank';
-        }, 500);
-      }
-    }
-
-    // ========================================
-    // FUNCIONES DE CATEGORIZACIÓN PARA KPIs
-    // ========================================
-    
-    function categorizarDistancia(metros) {
-      if (metros < 100) return 'CERCA';
-      if (metros < 500) return 'MEDIA';  
-      if (metros < 1000) return 'LEJANA';
-      return 'MUY_LEJANA';
-    }
-    
-    function categorizarPrecision(accuracy) {
-      if (accuracy < 20) return 'ALTA';
-      if (accuracy < 50) return 'MEDIA';
-      return 'BAJA';
-    }
-  </script>
+        
+        function actualizarInterfazConParametros() {
+            document.getElementById('tecnico-nombre').textContent = parametrosURL.tecnico || 'No especificado';
+            document.getElementById('zona-principal').textContent = parametrosURL.zona_principal || 'No especificada';
+            document.getElementById('zonas-secundarias').textContent = 
+                zonasSecundariasArray.length > 0 ? zonasSecundariasArray.join(', ') : 'Ninguna autorizada';
+            document.getElementById('turno-info').textContent = parametrosURL.turno || 'No especificado';
+            document.getElementById('horario-turno').textContent = parametrosURL.horario_turno || 'No especificado';
+        }
+        
+        function actualizarHora() {
+            const ahora = new Date();
+            document.getElementById('hora-actual').textContent = ahora.toLocaleTimeString('es-ES', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+        
+        function inicializarDeteccionDispositivo() {
+            deviceFingerprint = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                timestamp: Date.now(),
+                riskLevel: 'LOW'
+            };
+        }
+        
+        function inicializarConectividad() {
+            conectividadOnline = navigator.onLine;
+            document.getElementById('connectivity-status').textContent = conectividadOnline ? 'Online' : 'Offline';
+            document.getElementById('connectivity-status').className = 
+                `connectivity-status ${conectividadOnline ? 'connectivity-online' : 'connectivity-offline'}`;
+        }
+        
+        // ========================================
+        // 🔐 SISTEMA DE VALIDACIONES DE ACCESO
+        // ========================================
+        
+        function validarAcceso() {
+            console.log('🔍 Iniciando validación de acceso...');
+            
+            // 1. Validar parámetros básicos primero
+            if (!validarParametrosBasicos()) return;
+            
+            // 2. Validar fecha del evento
+            if (!validarFechaEvento()) return;
+            
+            // 3. Validar zonas autorizadas
+            if (!validarZonasAutorizadas()) return;
+            
+            // 4. Validar horario de turno (último para mejor UX)
+            if (!validarHorarioTurno()) return;
+            
+            // 5. Si todo es válido, mostrar interfaz
+            mostrarInterfazCheckIn();
+        }
+        
+        function validarParametrosBasicos() {
+            if (!parametrosURL.tecnico || !parametrosURL.zona_principal) {
+                mostrarError('❌ Enlace incompleto. Faltan parámetros obligatorios.');
+                return false;
+            }
+            return true;
+        }
+        
+        function validarFechaEvento() {
+            const hoy = new Date().toISOString().split('T')[0];
+            
+            // Si no hay fecha, usar hoy por defecto
+            if (!parametrosURL.fecha_evento) {
+                parametrosURL.fecha_evento = hoy;
+                fechaValida = true;
+                return true;
+            }
+            
+            // Verificar si la fecha del enlace coincide con hoy
+            if (parametrosURL.fecha_evento !== hoy) {
+                fechaValida = false;
+                document.getElementById('fecha-alert').style.display = 'block';
+                document.getElementById('fecha-alert').innerHTML = `
+                    <h4>❌ Enlace no válido para hoy</h4>
+                    <p><strong>Fecha del enlace:</strong> ${parametrosURL.fecha_evento}<br>
+                    <strong>Fecha actual:</strong> ${hoy}<br><br>
+                    Este enlace corresponde a otro día. Usa el enlace correcto del calendario de hoy.</p>
+                `;
+                mostrarError('❌ Este enlace no es válido para la fecha de hoy.');
+                return false;
+            }
+            
+            fechaValida = true;
+            return true;
+        }
+        
+        function validarZonasAutorizadas() {
+            const zonasInvalidas = zonasAutorizadas.filter(zona => !ZONAS_CONFIG[zona]);
+            
+            if (zonasInvalidas.length > 0) {
+                mostrarError(`❌ Zonas no válidas en configuración: ${zonasInvalidas.join(', ')}`);
+                return false;
+            }
+            
+            if (zonasAutorizadas.length === 0) {
+                mostrarError('❌ No tienes zonas autorizadas para check-in.');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validarHorarioTurno() {
+            // Si no hay horario especificado, permitir cualquier hora
+            if (!parametrosURL.horario_turno) {
+                horarioValido = true;
+                document.getElementById('horario-alert').style.display = 'none';
+                return true;
+            }
+            
+            const ahora = new Date();
+            const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+            
+            try {
+                const [inicio, fin] = parametrosURL.horario_turno.split('-');
+                const [horaInicio, minInicio] = inicio.split(':').map(Number);
+                const [horaFin, minFin] = fin.split(':').map(Number);
+                const minutosInicio = horaInicio * 60 + minInicio;
+                const minutosFin = horaFin * 60 + minFin;
+                
+                let dentroHorario = false;
+                
+                // Manejar turnos que cruzan medianoche
+                if (minutosInicio <= minutosFin) {
+                    dentroHorario = horaActual >= minutosInicio && horaActual <= minutosFin;
+                } else {
+                    dentroHorario = horaActual >= minutosInicio || horaActual <= minutosFin;
+                }
+                
+                const alertDiv = document.getElementById('horario-alert');
+                const mensajeDiv = document.getElementById('horario-mensaje');
+                
+                if (dentroHorario) {
+                    horarioValido = true;
+                    alertDiv.className = 'horario-alert horario-permitido';
+                    mensajeDiv.innerHTML = `✅ <strong>Horario Check-in válido</strong><br>
+                        Ventana check-in: ${parametrosURL.horario_turno} | Hora actual: ${ahora.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}<br>
+                        <small>💡 Este es el horario para hacer check-in, antes del inicio de tu turno de trabajo</small>`;
+                    return true;
+                } else {
+                    horarioValido = false;
+                    alertDiv.className = 'horario-alert horario-fuera';
+                    
+                    // Calcular tiempo restante hasta el próximo turno
+                    let minutosHastaTurno;
+                    if (horaActual < minutosInicio) {
+                        minutosHastaTurno = minutosInicio - horaActual;
+                    } else {
+                        minutosHastaTurno = (24 * 60) - horaActual + minutosInicio;
+                    }
+                    
+                    const horasRestantes = Math.floor(minutosHastaTurno / 60);
+                    const minRestantes = minutosHastaTurno % 60;
+                    
+                    mensajeDiv.innerHTML = `⏰ <strong>Fuera de horario de check-in</strong><br>
+                        Ventana check-in: ${parametrosURL.horario_turno}<br>
+                        Tiempo hasta ventana check-in: ${horasRestantes}h ${minRestantes}min<br><br>
+                        <small>💡 Solo puedes hacer check-in durante la ventana horaria asignada<br>
+                        Si es una emergencia, contacta a tu supervisor.</small>`;
+                    
+                    mostrarError('❌ No puedes hacer check-in fuera de tu horario asignado.');
+                    return false;
+                }
+            } catch (error) {
+                horarioValido = false;
+                document.getElementById('horario-mensaje').innerHTML = 
+                    '❌ Error en formato de horario check-in. Contacta al administrador.';
+                mostrarError('❌ Error en configuración de horario check-in.');
+                return false;
+            }
+        }
+        
+        function mostrarInterfazCheckIn() {
+            if (!fechaValida || !horarioValido) {
+                return;
+            }
+            
+            // Ocultar alertas de validación
+            document.getElementById('horario-alert').style.display = 'none';
+            document.getElementById('fecha-alert').style.display = 'none';
+            
+            // Mostrar selectores de zona
+            mostrarSelectorZonas();
+            configurarSelectores();
+            
+            // Habilitar botón principal
+            const gpsButton = document.getElementById('gps-button');
+            gpsButton.disabled = false;
+            gpsButton.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
+            
+            mostrarEstado('✅ Acceso validado. Selecciona tu zona de trabajo y procede con el check-in.');
+        }
+        
+        // ========================================
+        // 🎯 SISTEMA DE SELECCIÓN DE ZONAS Y MOTIVOS
+        // ========================================
+        
+        function mostrarSelectorZonas() {
+            const selector = document.getElementById('zona-selector');
+            const options = document.getElementById('zona-options');
+            options.innerHTML = '';
+            
+            zonasAutorizadas.forEach((zona) => {
+                const config = ZONAS_CONFIG[zona];
+                if (!config) return;
+                
+                const esPrincipal = zona === parametrosURL.zona_principal;
+                const optionDiv = document.createElement('div');
+                optionDiv.className = `zone-option ${zonaSeleccionada === zona ? 'selected' : ''}`;
+                optionDiv.innerHTML = `
+                    <div class="zone-name">
+                        ${config.emoji} ${zona}
+                        <span class="${esPrincipal ? 'zone-principal-badge' : 'zone-secondary-badge'}">
+                            ${esPrincipal ? 'PRINCIPAL' : 'SECUNDARIA'}
+                        </span>
+                    </div>
+                    <div class="zone-distance">
+                        📏 Radio: ${config.radio}m | 🏷️ Tipo: ${config.tipo}
+                        ${esPrincipal ? ' - Zona asignada según calendario' : ' - Requiere motivo'}
+                    </div>
+                `;
+                
+                optionDiv.addEventListener('click', function() {
+                    seleccionarZona(zona, esPrincipal);
+                });
+                
+                options.appendChild(optionDiv);
+            });
+            
+            selector.style.display = 'block';
+        }
+        
+        function seleccionarZona(zona, esPrincipal) {
+            // Limpiar selecciones anteriores
+            document.querySelectorAll('.zone-option').forEach(o => o.classList.remove('selected'));
+            document.querySelectorAll('.motivo-option').forEach(o => o.classList.remove('selected'));
+            
+            // Seleccionar nueva zona
+            event.target.closest('.zone-option').classList.add('selected');
+            zonaSeleccionada = zona;
+            motivoSeleccionado = null;
+            
+            // Reset motivo display
+            const motivoDisplay = document.getElementById('motivo-display');
+            motivoDisplay.innerHTML = '<div class="motivo-placeholder">👇 Selecciona un motivo válido</div>';
+            motivoDisplay.classList.remove('selected');
+            
+            const motivoSelector = document.getElementById('motivo-selector');
+            
+            if (!esPrincipal) {
+                // Zona secundaria - requiere motivo
+                motivoSelector.style.display = 'block';
+                mostrarEstado('Zona secundaria seleccionada. Debes seleccionar un motivo válido.');
+            } else {
+                // Zona principal - no requiere motivo
+                motivoSelector.style.display = 'none';
+                mostrarEstado('Zona principal seleccionada. Puedes proceder con el check-in.');
+            }
+            
+            validarSeleccionCompleta();
+        }
+        
+        function configurarSelectores() {
+            document.querySelectorAll('.motivo-option').forEach(option => {
+                // Skip el display option
+                if (option.id === 'motivo-display') return;
+                
+                option.addEventListener('click', function() {
+                    const motivo = this.dataset.motivo;
+                    if (motivo === '') return;
+                    
+                    // Limpiar selecciones anteriores
+                    document.querySelectorAll('.motivo-option').forEach(o => o.classList.remove('selected'));
+                    
+                    // Seleccionar este motivo
+                    this.classList.add('selected');
+                    motivoSeleccionado = motivo;
+                    
+                    // Actualizar el display del motivo seleccionado
+                    const motivoDisplay = document.getElementById('motivo-display');
+                    motivoDisplay.innerHTML = this.innerHTML;
+                    motivoDisplay.classList.add('selected');
+                    
+                    validarSeleccionCompleta();
+                });
+            });
+        }
+        
+        function validarSeleccionCompleta() {
+            const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
+            const tieneMotivo = motivoSeleccionado && motivoSeleccionado !== '';
+            
+            let puedeCheckIn = false;
+            let mensaje = '';
+            
+            if (!esZonaSecundaria) {
+                puedeCheckIn = true;
+                mensaje = 'Listo para check-in en zona principal';
+            } else if (esZonaSecundaria && tieneMotivo) {
+                puedeCheckIn = true;
+                mensaje = `Listo para check-in en ${zonaSeleccionada} - Motivo: ${MOTIVOS_TEXTO[motivoSeleccionado]}`;
+            } else {
+                puedeCheckIn = false;
+                mensaje = 'Debes seleccionar un motivo para trabajar en zona secundaria';
+            }
+            
+            const gpsButton = document.getElementById('gps-button');
+            gpsButton.disabled = !puedeCheckIn;
+            
+            if (puedeCheckIn) {
+                mostrarEstado(mensaje);
+                gpsButton.style.background = '#2ecc71';
+                gpsButton.innerHTML = 'OBTENER UBICACIÓN Y CHECK-IN';
+            } else {
+                mostrarError(mensaje);
+                gpsButton.style.background = '#95a5a6';
+                gpsButton.innerHTML = 'COMPLETA SELECCIÓN';
+            }
+        }
+        
+        // ========================================
+        // 📍 SISTEMA DE CAPTURA Y VALIDACIÓN GPS
+        // ========================================
+        
+        function iniciarCheckIn() {
+            console.log('🚀 Iniciando proceso de check-in...');
+            
+            // Validaciones previas
+            const esZonaSecundaria = zonaSeleccionada !== parametrosURL.zona_principal;
+            if (esZonaSecundaria && (!motivoSeleccionado || motivoSeleccionado === '')) {
+                mostrarError('Debes seleccionar un motivo para trabajar en zona secundaria');
+                return;
+            }
+            
+            if (!fechaValida || !horarioValido) {
+                mostrarError('No tienes acceso válido para hacer check-in en este momento');
+                return;
+            }
+            
+            // CRÍTICO: Verificar límite de intentos ANTES de proceder
+            if (intentosGPS >= CONFIG.MAX_INTENTOS) {
+                bloquearInterfazLimite();
+                return;
+            }
+            
+            // Validar conectividad
+            validarConectividad().then(tieneConexion => {
+                if (!tieneConexion) {
+                    mostrarError('Sin conexión a internet. Verifica tu conectividad.');
+                    return;
+                }
+                
+                if (!navigator.geolocation) {
+                    manejarErrorCritico('GEOLOCATION_NO_SOPORTADO', {}, 'GPS no soportado en este dispositivo');
+                    return;
+                }
+                
+                // Mostrar estado de progreso
+                mostrarEstado(`Obteniendo ubicación GPS para ${zonaSeleccionada}... (Intento ${intentosGPS + 1}/${CONFIG.MAX_INTENTOS})`);
+                
+                const button = document.getElementById('gps-button');
+                button.innerHTML = `Obteniendo GPS... (${intentosGPS + 1}/${CONFIG.MAX_INTENTOS})`;
+                button.disabled = true;
+                button.classList.add('loading');
+                
+                // Obtener posición GPS con configuración optimizada
+                navigator.geolocation.getCurrentPosition(
+                    exitoGPS,
+                    errorGPS,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 60000
+                    }
+                );
+            });
+        }
+        
+        // ========================================
+        // ✅ MANEJO DE ÉXITO GPS
+        // ========================================
+        
+        async function exitoGPS(position) {
+            console.log('📍 GPS obtenido exitosamente');
+            
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const timestamp = position.timestamp || Date.now();
+            
+            // VALIDACIONES CRÍTICAS BÁSICAS
+            if (!validarCoordenadasBasicas(lat, lng, accuracy)) return;
+            
+            // OBTENER DATOS COMPLETOS DEL DISPOSITIVO
+            const dispositivoCompleto = await obtenerDatosDispositivoCompleto();
+            const anomaliasDispositivo = await analizarCoherenciaDispositivo({lat, lng, accuracy}, dispositivoCompleto);
+            
+            // VALIDACIONES CRÍTICAS DE UBICACIÓN (van directo al supervisor)
+            if (!validarUbicacionCritica(lat, lng, accuracy, dispositivoCompleto, anomaliasDispositivo)) return;
+            
+            // INCREMENTAR CONTADOR PARA CASOS NORMALES
+            intentosGPS++;
+            ubicacionActual = { lat, lng, accuracy };
+            
+            // Crear registro del evento con todas las anomalías
+            const evento = crearEventoGPS(intentosGPS, lat, lng, accuracy, dispositivoCompleto, anomaliasDispositivo);
+            
+            // VALIDACIONES NORMALES (permiten reintentos)
+            if (!validarPrecisionGPS(accuracy, evento)) return;
+            if (!validarZonaAsignada(lat, lng, evento)) return;
+            
+            // ✅ ÉXITO - Todo validado correctamente
+            await procesarCheckInExitoso(lat, lng, accuracy, evento, dispositivoCompleto);
+        }
+        
+        function validarCoordenadasBasicas(lat, lng, accuracy) {
+            // Coordenadas válidas
+            if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                manejarErrorCritico('COORDENADAS_INVALIDAS', {lat, lng, accuracy}, 'Coordenadas GPS inválidas detectadas');
+                return false;
+            }
+            
+            // Coordenadas nulas (0,0) - Error común
+            if (lat === 0 && lng === 0) {
+                manejarErrorCritico('COORDENADAS_NULAS', {lat, lng, accuracy}, 'GPS devolvió coordenadas nulas');
+                return false;
+            }
+            
+            // Coordenadas fuera de rango mundial
+            if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                manejarErrorCritico('COORDENADAS_FUERA_RANGO', {lat, lng, accuracy}, 'Coordenadas fuera del rango terrestre');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validarUbicacionCritica(lat, lng, accuracy, dispositivo, anomalias) {
+            // Fuera de España - CRÍTICO
+            if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
+                manejarErrorCritico('FUERA_ESPANA', {
+                    lat, lng, accuracy, dispositivo, anomalias,
+                    distancia_borde: calcularDistanciaMinimaBordeEspana(lat, lng)
+                }, 'Ubicación fuera de España detectada');
+                return false;
+            }
+            
+            // GPS sospechosamente preciso - CRÍTICO
+            if (accuracy < CONFIG.UMBRAL_GPS_SOSPECHOSO) {
+                manejarErrorCritico('GPS_SOSPECHOSO', {
+                    lat, lng, accuracy, dispositivo, anomalias
+                }, `GPS anormalmente preciso: ${accuracy}m`);
+                return false;
+            }
+            
+            // Múltiples anomalías del dispositivo - CRÍTICO
+            if (anomalias.length >= 2) {
+                manejarErrorCritico('DISPOSITIVO_SOSPECHOSO', {
+                    lat, lng, accuracy, dispositivo, anomalias
+                }, 'Dispositivo con múltiples patrones sospechosos');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validarPrecisionGPS(accuracy, evento) {
+            if (accuracy > CONFIG.UMBRAL_GPS_IMPRECISO) {
+                manejarErrorConReintentos('GPS_IMPRECISO', evento, `GPS poco preciso: ${Math.round(accuracy)}m`);
+                return false;
+            }
+            return true;
+        }
+        
+        function validarZonaAsignada(lat, lng, evento) {
+            const validacion = validarUbicacionConZona(lat, lng);
+            
+            if (!validacion.valido) {
+                evento.distancia_zona = validacion.distancia;
+                evento.zona_intentada = zonaSeleccionada;
+                manejarErrorConReintentos('FUERA_ZONA', evento, `Fuera de zona ${zonaSeleccionada}: ${validacion.distancia}m`);
+                return false;
+            }
+            
+            return true;
+        }
+        
+        async function procesarCheckInExitoso(lat, lng, accuracy, evento, dispositivo) {
+            // Marcar como éxito
+            evento.tipo = 'EXITO';
+            evento.zona_final = zonaSeleccionada;
+            evento.es_zona_secundaria = zonaSeleccionada !== parametrosURL.zona_principal;
+            evento.motivo_zona_secundaria = motivoSeleccionado;
+            
+            // Añadir a historial
+            historialErroresGPS.push(evento);
+            
+            // Validar ubicación final
+            const validacion = validarUbicacionConZona(lat, lng);
+            
+            // Crear resumen para métricas de Notion
+            const resumenExitoso = generarResumenExitoso(evento, validacion);
+            
+            // Preparar datos completos para envío
+            validacion.device_fingerprint = dispositivo;
+            validacion.gps_accuracy = Math.round(accuracy);
+            validacion.horario_turno = parametrosURL.horario_turno;
+            validacion.fecha_evento = parametrosURL.fecha_evento;
+            validacion.historial_completo = historialErroresGPS;
+            validacion.resumen_eventos = resumenExitoso;
+            
+            // Enviar resultado exitoso
+            enviarResultadoCheckIn(lat, lng, accuracy, validacion);
+        }
+        
+        // ========================================
+        // ❌ MANEJO DE ERRORES GPS
+        // ========================================
+        
+        function errorGPS(error) {
+            console.log(`⚠️ Error GPS detectado: Código ${error.code}`);
+            
+            // Incrementar contador unificado
+            intentosGPS++;
+            
+            // Clasificar tipo de error técnico
+            const { tipoError, mensajeError } = clasificarErrorGPS(error);
+            
+            // Crear evento del error
+            const evento = {
+                intento: intentosGPS,
+                timestamp: new Date().toISOString(),
+                tipo: tipoError,
+                detalle: mensajeError,
+                codigo_error: error.code,
+                mensaje_navegador: error.message,
+                nivel_criticidad: 'NORMAL'
+            };
+            
+            console.log(`⚠️ Error GPS: ${tipoError} (Intento ${intentosGPS}/${CONFIG.MAX_INTENTOS})`);
+            
+            // Todos los errores técnicos siguen lógica de reintentos
+            manejarErrorConReintentos(tipoError, evento, mensajeError);
+        }
+        
+        function clasificarErrorGPS(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    return {
+                        tipoError: 'PERMISOS_GPS_DENEGADOS',
+                        mensajeError: 'Permisos de ubicación denegados por el usuario'
+                    };
+                case error.POSITION_UNAVAILABLE:
+                    return {
+                        tipoError: 'GPS_NO_DISPONIBLE',
+                        mensajeError: 'Servicio GPS no disponible en este dispositivo'
+                    };
+                case error.TIMEOUT:
+                    return {
+                        tipoError: 'TIMEOUT_GPS',
+                        mensajeError: 'Tiempo agotado obteniendo ubicación GPS'
+                    };
+                default:
+                    return {
+                        tipoError: 'ERROR_GPS_DESCONOCIDO',
+                        mensajeError: `Error GPS desconocido (código: ${error.code})`
+                    };
+            }
+        }
+        
+        // ========================================
+        // 🚨 MANEJO DE ERRORES CRÍTICOS
+        // ========================================
+        
+        async function manejarErrorCritico(tipo, datos, mensaje) {
+            console.log(`🚨 Error crítico detectado: ${tipo}`);
+            
+            // Calcular score de sospecha (mínimo 8 para críticos)
+            const coords = { lat: datos.lat, lng: datos.lng, accuracy: datos.accuracy };
+            const scoreCritico = calcularScoreSospecha(datos.anomalias || [], coords, null);
+            const scoreFinal = Math.max(scoreCritico, 8);
+            
+            // Registrar en historial con score crítico
+            const evento = {
+                intento: intentosGPS + 1,
+                timestamp: new Date().toISOString(),
+                tipo: tipo,
+                detalle: mensaje,
+                datos_completos: datos,
+                nivel_criticidad: 'CRITICO',
+                score_sospecha: scoreFinal,
+                gps_potencialmente_falso: true
+            };
+            
+            historialErroresGPS.push(evento);
+            
+            // Enviar inmediatamente al supervisor
+            enviarSupervisorInmediato(tipo, evento);
+            
+            // Bloquear interfaz completamente
+            bloquearInterfazCritica(mensaje);
+        }
+        
+        function enviarSupervisorInmediato(tipo, evento) {
+            const url = CONFIG.WEBHOOK_MANUAL + 
+                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                `&evento_critico=${tipo}` +
+                `&timestamp=${Date.now()}` +
+                `&coordenadas=${evento.datos_completos?.lat || 'N/A'},${evento.datos_completos?.lng || 'N/A'}` +
+                `&accuracy=${evento.datos_completos?.accuracy || 'N/A'}` +
+                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                `&zona_intentada=${encodeURIComponent(zonaSeleccionada || 'N/A')}` +
+                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                `&detalle_error=${encodeURIComponent(evento.detalle)}` +
+                `&score_sospecha=${evento.score_sospecha}` +
+                `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
+                `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}`;
+                
+            fetch(url, {method: 'GET'})
+                .then(() => console.log('✅ Supervisor notificado inmediatamente'))
+                .catch(() => console.log('❌ Error notificando supervisor'));
+        }
+        
+        function bloquearInterfazCritica(mensaje) {
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    🚨 <strong>Error crítico detectado</strong><br><br>
+                    ${mensaje}<br><br>
+                    📧 <strong>Supervisor notificado automáticamente</strong><br>
+                    🔔 Te contactará para revisar la situación<br><br>
+                    📞 <strong>Contacto directo:</strong><br>
+                    <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
+                    ⚠️ <strong>Este tipo de error requiere validación manual inmediata</strong>
+                </div>`;
+                
+            // Deshabilitar todos los botones permanentemente
+            const gpsButton = document.getElementById('gps-button');
+            gpsButton.disabled = true;
+            gpsButton.innerHTML = '🚨 ERROR CRÍTICO DETECTADO';
+            gpsButton.style.background = '#dc3545';
+            gpsButton.style.opacity = '0.7';
+            gpsButton.classList.remove('loading');
+            
+            const emergencyButton = document.getElementById('emergency-button');
+            emergencyButton.disabled = true;
+            emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
+            emergencyButton.style.background = '#6c757d';
+            emergencyButton.style.opacity = '0.7';
+        }
+        
+        // ========================================
+        // ⚠️ MANEJO DE ERRORES CON REINTENTOS
+        // ========================================
+        
+        function manejarErrorConReintentos(tipo, evento, mensaje) {
+            console.log(`⚠️ Error normal detectado: ${tipo} (Intento ${intentosGPS}/${CONFIG.MAX_INTENTOS})`);
+            
+            // Añadir detalles al evento
+            evento.tipo = tipo;
+            evento.detalle = mensaje;
+            evento.nivel_criticidad = 'NORMAL';
+            
+            // Registrar en historial
+            historialErroresGPS.push(evento);
+            
+            // Verificar si se alcanzó el límite
+            if (intentosGPS >= CONFIG.MAX_INTENTOS) {
+                enviarHistorialCompleto('LIMITE_ALCANZADO');
+                bloquearInterfazLimite();
+            } else {
+                // Permitir reintento - mostrar error persistente
+                mostrarErrorConOpcionReintento(mensaje, tipo);
+                resetearBotonParaReintento();
+            }
+        }
+        
+        function mostrarErrorConOpcionReintento(mensaje, tipo) {
+            const sugerencias = {
+                'GPS_IMPRECISO': 'Sal al exterior o busca zona con mejor cobertura GPS',
+                'FUERA_ZONA': 'Desplázate hacia el centro de tu zona asignada',
+                'ERROR_TECNICO_GPS': 'Verifica permisos de ubicación en el navegador',
+                'PERMISOS_GPS_DENEGADOS': 'Habilita permisos de ubicación en tu navegador',
+                'TIMEOUT_GPS': 'Busca zona con mejor cobertura GPS y reintenta'
+            };
+            
+            // Mensaje persistente que se mantiene visible
+            document.getElementById('status-message').innerHTML = `
+                <div class="warning-box" id="mensaje-persistente">
+                    ⚠️ <strong>${mensaje}</strong><br><br>
+                    🔄 <strong>Intento ${intentosGPS} de ${CONFIG.MAX_INTENTOS} completado</strong><br>
+                    📊 <em>Evento registrado para auditoría</em><br><br>
+                    💡 <strong>Sugerencia:</strong> ${sugerencias[tipo] || 'Reintenta tras verificar las condiciones'}<br><br>
+                    🔄 <strong>Puedes hacer ${CONFIG.MAX_INTENTOS - intentosGPS} intento(s) más</strong><br>
+                    📞 <strong>Si necesitas ayuda:</strong> Contacta a tu supervisor
+                </div>`;
+        }
+        
+        function resetearBotonParaReintento() {
+            if (intentosGPS < CONFIG.MAX_INTENTOS) {
+                const button = document.getElementById('gps-button');
+                button.innerHTML = `REINTENTO ${intentosGPS + 1}/${CONFIG.MAX_INTENTOS} - OBTENER UBICACIÓN`;
+                button.disabled = false;
+                button.classList.remove('loading');
+                button.style.background = '#f39c12'; // Color naranja para reintentos
+            }
+        }
+        
+        function bloquearInterfazLimite() {
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    ❌ <strong>Máximo de intentos alcanzado (${CONFIG.MAX_INTENTOS})</strong><br><br>
+                    📧 <strong>Historial completo enviado al supervisor</strong><br>
+                    🔔 Te contactará para procesar check-in manual<br><br>
+                    📞 <strong>Contacta directamente:</strong><br>
+                    <a href="tel:${parametrosURL.telefono}" style="font-size: 16px; font-weight: bold;">${parametrosURL.telefono}</a><br><br>
+                    💡 <strong>Posibles soluciones:</strong><br>
+                    • Verificar permisos de ubicación<br>
+                    • Salir al exterior para mejor señal GPS<br>
+                    • Reiniciar navegador si persiste
+                </div>`;
+                
+            // Deshabilitar botones
+            const gpsButton = document.getElementById('gps-button');
+            gpsButton.disabled = true;
+            gpsButton.innerHTML = '❌ MÁXIMO INTENTOS ALCANZADO';
+            gpsButton.style.background = '#dc3545';
+            gpsButton.style.opacity = '0.7';
+            gpsButton.classList.remove('loading');
+            
+            const emergencyButton = document.getElementById('emergency-button');
+            emergencyButton.disabled = true;
+            emergencyButton.innerHTML = '📧 SUPERVISOR NOTIFICADO';
+            emergencyButton.style.background = '#6c757d';
+            emergencyButton.style.opacity = '0.7';
+        }
+        
+        // ========================================
+        // 🔍 SISTEMA DE DETECCIÓN DE ANOMALÍAS
+        // ========================================
+        
+        async function obtenerDatosDispositivoCompleto() {
+            const dispositivo = {
+                // Datos básicos del navegador
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                
+                // Datos de red y ubicación
+                ip_publica: await obtenerIPPublica().catch(() => 'no_disponible'),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timezone_offset: new Date().getTimezoneOffset(),
+                
+                // Capacidades del dispositivo
+                screen_resolution: `${screen.width}x${screen.height}`,
+                color_depth: screen.colorDepth,
+                pixel_ratio: window.devicePixelRatio,
+                
+                // Detección de entorno
+                touch_support: 'ontouchstart' in window,
+                webgl_info: obtenerWebGLInfo(),
+                
+                // Detección anti-bot
+                webdriver: navigator.webdriver || false,
+                automation_indicators: detectarAutomation(),
+                
+                // Metadatos
+                timestamp_dispositivo: Date.now(),
+                connection_type: navigator.connection?.effectiveType || 'unknown'
+            };
+            
+            return dispositivo;
+        }
+        
+        async function obtenerIPPublica() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json', { timeout: 5000 });
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.log('No se pudo obtener IP pública:', error);
+                return 'no_disponible';
+            }
+        }
+        
+        function obtenerWebGLInfo() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return 'no_disponible';
+                
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                return {
+                    vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'unknown',
+                    renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown'
+                };
+            } catch (error) {
+                return 'error';
+            }
+        }
+        
+        function detectarAutomation() {
+            const indicadores = [];
+            
+            // Selenium
+            if (window.navigator.webdriver) {
+                indicadores.push('SELENIUM_WEBDRIVER');
+            }
+            
+            // Phantom JS
+            if (window.callPhantom || window._phantom) {
+                indicadores.push('PHANTOM_JS');
+            }
+            
+            // Headless Chrome
+            if (navigator.userAgent.includes('HeadlessChrome')) {
+                indicadores.push('HEADLESS_CHROME');
+            }
+            
+            // Propiedades anómalas
+            if (navigator.plugins.length === 0 && !navigator.userAgent.includes('Mobile')) {
+                indicadores.push('SIN_PLUGINS_DESKTOP');
+            }
+            
+            return indicadores;
+        }
+        
+        async function analizarCoherenciaDispositivo(coords, dispositivo) {
+            const anomalias = [];
+            
+            // ===== ANOMALÍAS TÉCNICAS DE DISPOSITIVO =====
+            
+            // Timezone vs GPS (solo si no es crítico)
+            if (dispositivo.timezone && !dispositivo.timezone.includes('Europe') && 
+                coords.lat > 35 && coords.lat < 45 && coords.lng > -10 && coords.lng < 5) {
+                anomalias.push('TIMEZONE_GPS_INCOHERENTE');
+            }
+            
+            // Indicadores de automation
+            if (dispositivo.automation_indicators.length > 0) {
+                anomalias.push('AUTOMATION_DETECTADA');
+            }
+            
+            // WebGL sospechoso
+            if (dispositivo.webgl_info.renderer && 
+                (dispositivo.webgl_info.renderer.includes('SwiftShader') || 
+                 dispositivo.webgl_info.renderer.includes('VMware'))) {
+                anomalias.push('WEBGL_EMULADOR');
+            }
+            
+            // Resolución típica de emulador
+            if (dispositivo.screen_resolution === '393x851' ||  // Android emulator
+                dispositivo.screen_resolution === '375x667' ||  // iPhone emulator
+                (dispositivo.screen_resolution === '1920x1080' && dispositivo.pixel_ratio === 1)) {
+                anomalias.push('RESOLUCION_EMULADOR_TIPICA');
+            }
+            
+            // User Agent vs capacidades
+            if (navigator.userAgent.includes('Mobile') && !dispositivo.touch_support) {
+                anomalias.push('MOBILE_SIN_TOUCH');
+            }
+            
+            // ===== ANOMALÍAS GEOGRÁFICAS =====
+            
+            // GPS demasiado preciso
+            if (coords.accuracy < 3) {
+                anomalias.push('GPS_DEMASIADO_PRECISO');
+            }
+            
+            // Distancia a fábrica
+            const distanciaFabrica = calcularDistancia(coords.lat, coords.lng, CONFIG.FABRICA_LAT, CONFIG.FABRICA_LNG);
+            if (distanciaFabrica > CONFIG.DISTANCIA_FABRICA_EXTREMO) {
+                anomalias.push('LEJOS_DE_FABRICA_EXTREMO');
+            } else if (distanciaFabrica > CONFIG.DISTANCIA_FABRICA_LEJOS) {
+                anomalias.push('LEJOS_DE_FABRICA');
+            }
+            
+            // GPS impreciso en fábrica
+            if (coords.accuracy > CONFIG.UMBRAL_GPS_IMPRECISO && distanciaFabrica < CONFIG.DISTANCIA_FABRICA_CERCA) {
+                anomalias.push('GPS_IMPRECISO_EN_FABRICA');
+            }
+            
+            // ===== ANOMALÍAS DE COHERENCIA IP/GPS/TIMEZONE =====
+            
+            // Coherencia IP vs GPS
+            if (dispositivo.ip_publica && dispositivo.ip_publica !== 'no_disponible') {
+                try {
+                    const distanciaIPGPS = await calcularDistanciaIPvsGPS(dispositivo.ip_publica, coords);
+                    if (distanciaIPGPS > CONFIG.DISTANCIA_IP_GPS_SOSPECHOSA) {
+                        anomalias.push('IP_GPS_DISTANCIA_SOSPECHOSA');
+                    }
+                } catch (error) {
+                    console.log('No se pudo verificar coherencia IP-GPS:', error);
+                }
+            }
+            
+            // GPS vs Timezone incoherente
+            if (dispositivo.timezone) {
+                const esTimezoneEspanol = dispositivo.timezone.includes('Madrid') || dispositivo.timezone.includes('Europe/Madrid');
+                const esGPSEspanol = coords.lat > 35 && coords.lat < 45 && coords.lng > -10 && coords.lng < 5;
+                
+                if (esGPSEspanol && !esTimezoneEspanol) {
+                    anomalias.push('GPS_TIMEZONE_INCOHERENTE');
+                }
+            }
+            
+            // IP vs Timezone incoherente
+            if (dispositivo.ip_publica && dispositivo.ip_publica !== 'no_disponible' && dispositivo.timezone) {
+                try {
+                    const paisIP = await obtenerPaisDeIP(dispositivo.ip_publica);
+                    const esTimezoneEspanol = dispositivo.timezone.includes('Madrid') || dispositivo.timezone.includes('Europe/Madrid');
+                    
+                    if ((paisIP === 'ES' && !esTimezoneEspanol) || (paisIP !== 'ES' && esTimezoneEspanol)) {
+                        anomalias.push('IP_TIMEZONE_INCOHERENTE');
+                    }
+                } catch (error) {
+                    console.log('No se pudo verificar coherencia IP-Timezone:', error);
+                }
+            }
+            
+            return anomalias;
+        }
+        
+        // ========================================
+        // 📊 SISTEMA DE SCORING Y MÉTRICAS
+        // ========================================
+        
+        function calcularScoreSospecha(anomalias, coords, validacion) {
+            let score = 0;
+            
+            // Sumar pesos según anomalías detectadas
+            anomalias.forEach(anomalia => {
+                score += PESOS_ANOMALIAS[anomalia] || 0;
+            });
+            
+            // Factores adicionales de ubicación
+            if (validacion && validacion.distancia > 1000) score += 1;
+            if (coords.accuracy < 5 && validacion?.distancia < 10) score += 1;
+            
+            return Math.min(score, 10); // Máximo 10
+        }
+        
+        function generarResumenExitoso(evento, validacion) {
+            return {
+                total_intentos: intentosGPS,
+                motivo_envio: 'CHECK_IN_EXITOSO',
+                tipos_errores: historialErroresGPS.filter(h => h.tipo !== 'EXITO').map(h => h.tipo),
+                resultado_final: 'EXITOSO',
+                timestamp_inicio: historialErroresGPS[0]?.timestamp,
+                timestamp_fin: evento.timestamp,
+                
+                // KPIs calculados para Notion
+                duracion_total_segundos: Math.floor((new Date(evento.timestamp) - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
+                distancia_promedio: Math.round(
+                    historialErroresGPS.filter(h => h.distancia_zona)
+                        .reduce((acc, h) => acc + h.distancia_zona, 0) / 
+                    historialErroresGPS.filter(h => h.distancia_zona).length
+                ) || validacion.distancia || 0,
+                accuracy_promedio: Math.round(
+                    historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length
+                ),
+                
+                // KPIs categorizados para Notion
+                eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
+                categoria_distancia: categorizarDistancia(validacion.distancia || 0),
+                precision_gps_categoria: categorizarPrecision(Math.round(
+                    historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length
+                )),
+                dispositivo_estable: historialErroresGPS.every(h => 
+                    h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica
+                ),
+                
+                // Campos de seguridad
+                ip_dispositivo: evento.dispositivo?.ip_publica || 'no_disponible',
+                timezone_dispositivo: evento.dispositivo?.timezone || 'unknown',
+                fingerprint_dispositivo: generarHashDispositivo(evento.dispositivo || {}),
+                anomalias_detectadas: evento.anomalias || [],
+                score_sospecha: calcularScoreSospecha(evento.anomalias || [], 
+                    {lat: evento.lat, lng: evento.lng, accuracy: evento.accuracy}, validacion),
+                distancia_fabrica_metros: Math.round(calcularDistancia(
+                    evento.lat, evento.lng, CONFIG.FABRICA_LAT, CONFIG.FABRICA_LNG
+                )),
+                
+                // Contexto final
+                zona_final: zonaSeleccionada,
+                es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal,
+                plataforma_dispositivo: evento.dispositivo?.platform || 'unknown'
+            };
+        }
+        
+        function enviarHistorialCompleto(motivo) {
+            const resumen = {
+                total_intentos: intentosGPS,
+                motivo_envio: motivo,
+                tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
+                resultado_final: 'FALLIDO',
+                timestamp_inicio: historialErroresGPS[0]?.timestamp,
+                timestamp_fin: new Date().toISOString(),
+                
+                // Métricas calculadas
+                duracion_total_segundos: Math.floor((Date.now() - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
+                distancia_promedio: Math.round(
+                    historialErroresGPS.filter(h => h.distancia_zona)
+                        .reduce((acc, h) => acc + h.distancia_zona, 0) / 
+                    historialErroresGPS.filter(h => h.distancia_zona).length
+                ) || 0,
+                accuracy_promedio: Math.round(
+                    historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length
+                ),
+                eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
+                dispositivo_estable: historialErroresGPS.every(h => 
+                    h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica
+                ),
+                plataforma_dispositivo: historialErroresGPS[0]?.dispositivo?.platform || 'unknown'
+            };
+            
+            const url = CONFIG.WEBHOOK_MANUAL + 
+                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                `&zona_intentada=${encodeURIComponent(zonaSeleccionada)}` +
+                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                `&motivo_envio=${motivo}` +
+                `&total_intentos=${intentosGPS}` +
+                `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
+                `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+                `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
+                `&timestamp=${Math.floor(Date.now()/1000)}`;
+                
+            fetch(url, {method: 'GET'})
+                .then(() => console.log('✅ Historial completo enviado al supervisor'))
+                .catch(() => console.log('❌ Error enviando historial al supervisor'));
+        }
+        
+        // ========================================
+        // 📍 VALIDACIÓN DE UBICACIÓN Y ZONAS
+        // ========================================
+        
+        function validarUbicacionConZona(lat, lng) {
+            const zona = ZONAS_CONFIG[zonaSeleccionada];
+            if (!zona) {
+                return {
+                    valido: false,
+                    codigo: "ZONA_NO_CONFIGURADA",
+                    mensaje: `Zona "${zonaSeleccionada}" no configurada`,
+                    zona_utilizada: zonaSeleccionada,
+                    es_zona_secundaria: false
+                };
+            }
+            
+            const distancia = calcularDistancia(lat, lng, zona.lat, zona.lng);
+            const esZonaSecundaria = zonasSecundariasArray.includes(zonaSeleccionada);
+            const ubicacionReportada = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+            
+            if (distancia <= zona.radio) {
+                return {
+                    valido: true,
+                    codigo: "UBICACION_VALIDA",
+                    mensaje: `Check-in exitoso en ${zonaSeleccionada}`,
+                    distancia: Math.round(distancia),
+                    zona_utilizada: zonaSeleccionada,
+                    es_zona_secundaria: esZonaSecundaria,
+                    motivo_cambio: motivoSeleccionado,
+                    metodo_checkin: "GPS",
+                    ubicacion_reportada: ubicacionReportada,
+                    ubicacion_verificada: "Válida",
+                    observaciones_sistema: `GPS: ${Math.round(distancia)}m del centro de ${zonaSeleccionada}${esZonaSecundaria ? ' (zona secundaria)' : ''}`
+                };
+            }
+            
+            return {
+                valido: false,
+                codigo: "ZONA_LEJANA",
+                mensaje: `Alejado de ${zonaSeleccionada}`,
+                distancia: Math.round(distancia),
+                zona_utilizada: zonaSeleccionada,
+                es_zona_secundaria: esZonaSecundaria,
+                motivo_cambio: motivoSeleccionado,
+                metodo_checkin: "Manual",
+                ubicacion_reportada: ubicacionReportada,
+                ubicacion_verificada: "No Válida"
+            };
+        }
+        
+        // ========================================
+        // 📤 SISTEMA DE ENVÍO DE RESULTADOS
+        // ========================================
+        
+        async function enviarResultadoCheckIn(lat, lng, accuracy, validacion) {
+            console.log('🚀 Iniciando envío de resultado check-in...');
+            
+            const tieneConexion = await validarConectividad();
+            if (!tieneConexion) {
+                mostrarError('Perdida conexión antes del envío. Reintenta cuando tengas conexión.');
+                return;
+            }
+            
+            const webhook = validacion.valido ? CONFIG.WEBHOOK_EXITOSO : CONFIG.WEBHOOK_MANUAL;
+            const fechaActual = new Date();
+            
+            const url = construirURLWebhook(webhook, lat, lng, accuracy, validacion, fechaActual);
+            
+            try {
+                if (validacion.valido) {
+                    console.log('✅ Enviando resultado EXITOSO...');
+                    mostrarPaginaConfirmacion(validacion);
+                    
+                    const response = await fetch(url, {method: 'GET'});
+                    if (!response.ok) {
+                        console.error('❌ Error en webhook exitoso:', response.status);
+                        mostrarAdvertenciaEnvio();
+                    } else {
+                        console.log('✅ Webhook exitoso enviado correctamente');
+                    }
+                } else {
+                    console.log('❌ Enviando resultado para VALIDACIÓN MANUAL...');
+                    mostrarResultadoError(validacion);
+                    
+                    const response = await fetch(url, {method: 'GET'});
+                    if (!response.ok) {
+                        console.error('❌ Error en webhook manual:', response.status);
+                    } else {
+                        console.log('✅ Webhook manual enviado correctamente');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error crítico enviando webhook:', error);
+                mostrarErrorEnvio(error);
+            }
+        }
+        
+        function construirURLWebhook(webhook, lat, lng, accuracy, validacion, fechaActual) {
+            return webhook + 
+                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                `&zonas_secundarias=${encodeURIComponent(parametrosURL.zonas_secundarias)}` +
+                `&zona_utilizada=${encodeURIComponent(validacion.zona_utilizada)}` +
+                `&es_zona_secundaria=${validacion.es_zona_secundaria}` +
+                `&motivo_cambio=${encodeURIComponent(validacion.motivo_cambio || '')}` +
+                `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+                `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` +
+                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                `&lat=${lat}&lng=${lng}&accuracy=${accuracy}` +
+                `&ubicacion_reportada=${encodeURIComponent(validacion.ubicacion_reportada || '')}` +
+                `&ubicacion_verificada=${encodeURIComponent(validacion.ubicacion_verificada || '')}` +
+                `&distancia_zona_metros=${validacion.distancia || 0}` +
+                `&metodo_check_in=${encodeURIComponent(validacion.metodo_checkin || '')}` +
+                `&observaciones_sistema=${encodeURIComponent(validacion.observaciones_sistema || '')}` +
+                `&device_type=${encodeURIComponent(getDeviceType())}` +
+                `&user_agent=${encodeURIComponent(validacion.device_fingerprint?.userAgent || '')}` +
+                `&device_risk_level=${validacion.device_fingerprint?.riskLevel || ''}` +
+                `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` +
+                `&validacion_codigo=${validacion.codigo}` +
+                `&fecha_check=${parametrosURL.fecha_evento}` +
+                `&hora_check=${encodeURIComponent(fechaActual.toTimeString().split(' ')[0])}` +
+                `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
+                `&resumen_eventos=${encodeURIComponent(JSON.stringify(validacion.resumen_eventos || {}))}` +
+                `&timestamp=${Math.floor(Date.now()/1000)}`;
+        }
+        
+        // ========================================
+        // 🎨 FUNCIONES DE INTERFAZ USUARIO
+        // ========================================
+        
+        function mostrarPaginaConfirmacion(validacion) {
+            document.getElementById('checkin-content').style.display = 'none';
+            document.getElementById('confirmation-content').style.display = 'block';
+            
+            const detalles = document.getElementById('confirmation-details');
+            const tipoZona = validacion.es_zona_secundaria ? 'secundaria' : 'principal';
+            const motivoTexto = validacion.motivo_cambio ? MOTIVOS_TEXTO[validacion.motivo_cambio] : 'No aplicable';
+            
+            detalles.innerHTML = `
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Técnico:</span>
+                    <span class="confirmation-value">${parametrosURL.tecnico}</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Fecha:</span>
+                    <span class="confirmation-value">${parametrosURL.fecha_evento}</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Hora check-in:</span>
+                    <span class="confirmation-value">${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Zona:</span>
+                    <span class="confirmation-value">${validacion.zona_utilizada} (${tipoZona})</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Distancia:</span>
+                    <span class="confirmation-value">${validacion.distancia}m del centro</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Motivo:</span>
+                    <span class="confirmation-value">${motivoTexto}</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Turno:</span>
+                    <span class="confirmation-value">${parametrosURL.turno}</span>
+                </div>
+                <div class="confirmation-item">
+                    <span class="confirmation-label">Horario:</span>
+                    <span class="confirmation-value">${parametrosURL.horario_turno}</span>
+                </div>
+            `;
+        }
+        
+        function mostrarResultadoError(validacion) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = `
+                <div class="error-box">
+                    ❌ <strong>Check-in requiere validación manual</strong><br><br>
+                    📍 <strong>Zona intentada:</strong> ${validacion.zona_utilizada}<br>
+                    📏 <strong>Distancia:</strong> ${validacion.distancia}m<br>
+                    ${validacion.motivo_cambio ? `📝 <strong>Motivo:</strong> ${MOTIVOS_TEXTO[validacion.motivo_cambio]}<br>` : ''}
+                    📧 Supervisor notificado para validación manual
+                </div>`;
+                
+            const gpsButton = document.getElementById('gps-button');
+            gpsButton.disabled = true;
+            gpsButton.innerHTML = 'SUPERVISOR NOTIFICADO';
+            gpsButton.style.background = '#6c757d';
+        }
+        
+        function mostrarAdvertenciaEnvio() {
+            document.getElementById('status-message').innerHTML = `
+                <div class="warning-box">
+                    ⚠️ Check-in procesado localmente pero error enviando a servidor<br>
+                    📞 Contacta a tu supervisor si necesitas confirmación
+                </div>`;
+        }
+        
+        function mostrarErrorEnvio(error) {
+            document.getElementById('status-message').innerHTML = `
+                <div class="error-box">
+                    🚨 <strong>Error enviando datos al servidor</strong><br><br>
+                    📝 Tu check-in ha sido procesado localmente<br>
+                    📞 <strong>IMPORTANTE:</strong> Contacta inmediatamente a tu supervisor<br>
+                    📧 Email: ${parametrosURL.supervisor}<br>
+                    📱 Teléfono: ${parametrosURL.telefono}<br><br>
+                    🔍 <strong>Error técnico:</strong> ${error.message}
+                </div>`;
+        }
+        
+        function mostrarEstado(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class='success-box'>${mensaje}</div>`;
+        }
+        
+        function mostrarError(mensaje) {
+            document.getElementById('status-message').innerHTML = `<div class='error-box'>${mensaje}</div>`;
+        }
+        
+        // ========================================
+        // 📞 CONTACTO CON SUPERVISOR
+        // ========================================
+        
+        function contactarSupervisor() {
+            const tel = parametrosURL.telefono || '';
+            if (tel) {
+                if (confirm('📞 ¿Quieres contactar a tu supervisor?\n\n✅ SÍ: Será notificado para hacer check-in manual\n❌ NO: Cancelar')) {
+                    const infoSolicitud = zonaSeleccionada !== parametrosURL.zona_principal ? 
+                        `Zona solicitada: ${zonaSeleccionada}. Motivo: ${MOTIVOS_TEXTO[motivoSeleccionado] || 'no especificado'}` :
+                        `Zona principal: ${parametrosURL.zona_principal}`;
+                    
+                    enviarSolicitudManual(infoSolicitud);
+                    mostrarConfirmacionContacto(infoSolicitud, tel);
+                }
+            } else {
+                mostrarError("❌ Teléfono del supervisor no disponible.");
+            }
+        }
+        
+        function enviarSolicitudManual(infoSolicitud) {
+            const url = CONFIG.WEBHOOK_MANUAL + 
+                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+                `&zona_solicitada=${encodeURIComponent(zonaSeleccionada)}` +
+                `&motivo_cambio=${encodeURIComponent(motivoSeleccionado || '')}` +
+                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+                `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+                `&error_message=SOLICITUD_CHECKIN_MANUAL` +
+                `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
+                `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+                `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
+                `&timestamp=${Math.floor(Date.now()/1000)}`;
+                
+            fetch(url, {method: 'GET'})
+                .then(() => console.log('✅ Solicitud manual enviada al supervisor'))
+                .catch(() => console.log('❌ Error enviando solicitud manual'));
+        }
+        
+        function mostrarConfirmacionContacto(infoSolicitud, tel) {
+            document.getElementById('status-message').innerHTML = `
+                <div class="success-box">
+                    📧 <strong>Supervisor notificado correctamente</strong><br><br>
+                    🔔 Tu supervisor ${parametrosURL.supervisor} ha sido informado<br>
+                    📞 Te contactará en breve para procesar check-in manual<br><br>
+                    📋 <strong>Información enviada:</strong><br>
+                    • Zona solicitada: ${zonaSeleccionada}<br>
+                    ${motivoSeleccionado ? `• Motivo: ${MOTIVOS_TEXTO[motivoSeleccionado]}<br>` : ''}
+                    • Historial errores GPS: ${historialErroresGPS.length} error(es)<br><br>
+                    📱 <strong>Llamada directa:</strong><br>
+                    <a href="tel:${tel}">${tel}</a>
+                </div>`;
+                
+            document.getElementById('gps-button').disabled = true;
+            document.getElementById('emergency-button').disabled = true;
+            document.getElementById('emergency-button').innerHTML = '✅ ENVIADO';
+            document.getElementById('emergency-button').style.background = '#28a745';
+        }
+        
+        // ========================================
+        // 🔧 FUNCIONES AUXILIARES Y UTILIDADES
+        // ========================================
+        
+        function crearEventoGPS(intento, lat, lng, accuracy, dispositivo, anomalias) {
+            return {
+                intento: intento,
+                timestamp: new Date().toISOString(),
+                lat: lat,
+                lng: lng,
+                accuracy: accuracy,
+                dispositivo: dispositivo,
+                anomalias: anomalias
+            };
+        }
+        
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radio de la Tierra en metros
+            const rad = Math.PI / 180;
+            const dLat = (lat2 - lat1) * rad;
+            const dLon = (lon2 - lon1) * rad;
+            const a = Math.sin(dLat / 2) ** 2 + 
+                     Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * 
+                     Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+        
+        function calcularDistanciaMinimaBordeEspana(lat, lng) {
+            // Coordenadas aproximadas de los bordes de España
+            const bordeEspana = {
+                norte: 43.79,
+                sur: 35.95,
+                este: 4.32,
+                oeste: -9.30
+            };
+            
+            let distanciaMinima = Infinity;
+            
+            // Distancia a cada borde
+            if (lat > bordeEspana.norte) {
+                distanciaMinima = Math.min(distanciaMinima, calcularDistancia(lat, lng, bordeEspana.norte, lng));
+            }
+            if (lat < bordeEspana.sur) {
+                distanciaMinima = Math.min(distanciaMinima, calcularDistancia(lat, lng, bordeEspana.sur, lng));
+            }
+            if (lng > bordeEspana.este) {
+                distanciaMinima = Math.min(distanciaMinima, calcularDistancia(lat, lng, lat, bordeEspana.este));
+            }
+            if (lng < bordeEspana.oeste) {
+                distanciaMinima = Math.min(distanciaMinima, calcularDistancia(lat, lng, lat, bordeEspana.oeste));
+            }
+            
+            return Math.round(distanciaMinima);
+        }
+        
+        async function calcularDistanciaIPvsGPS(ip, coords) {
+            try {
+                const response = await fetch(`https://ipapi.co/${ip}/json/`);
+                const ipData = await response.json();
+                
+                if (ipData.latitude && ipData.longitude) {
+                    return calcularDistancia(
+                        coords.lat, coords.lng,
+                        parseFloat(ipData.latitude), parseFloat(ipData.longitude)
+                    );
+                }
+            } catch (error) {
+                console.log('Error obteniendo ubicación de IP:', error);
+            }
+            return 0;
+        }
+        
+        async function obtenerPaisDeIP(ip) {
+            try {
+                const response = await fetch(`https://ipapi.co/${ip}/country/`);
+                return await response.text();
+            } catch (error) {
+                console.log('Error obteniendo país de IP:', error);
+                return 'unknown';
+            }
+        }
+        
+        function getDeviceType() {
+            const ua = navigator.userAgent.toLowerCase();
+            if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) return 'Mobile';
+            if (ua.includes('tablet') || ua.includes('ipad')) return 'Tablet';
+            return 'Desktop';
+        }
+        
+        function validarConectividad() {
+            return Promise.resolve(navigator.onLine);
+        }
+        
+        function cerrarPagina() {
+            if (confirm('¿Estás seguro de que quieres cerrar la página?')) {
+                window.close();
+                setTimeout(() => {
+                    window.location.href = 'about:blank';
+                }, 500);
+            }
+        }
+        
+        // ========================================
+        // 📈 FUNCIONES DE CATEGORIZACIÓN PARA KPIs
+        // ========================================
+        
+        function categorizarDistancia(metros) {
+            if (metros < 100) return 'CERCA';
+            if (metros < 500) return 'MEDIA';
+            if (metros < 1000) return 'LEJANA';
+            return 'MUY_LEJANA';
+        }
+        
+        function categorizarPrecision(accuracy) {
+            if (accuracy < 20) return 'ALTA';
+            if (accuracy < 50) return 'MEDIA';
+            return 'BAJA';
+        }
+        
+        function generarHashDispositivo(dispositivo) {
+            const datos = `${dispositivo.userAgent}-${dispositivo.platform}-${dispositivo.screen_resolution}-${dispositivo.webgl_info?.vendor}`;
+            return btoa(datos).slice(0, 12);
+        }
+        
+    </script>
 </body>
 </html>
