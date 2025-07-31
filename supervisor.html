@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-in Manual Supervisor</title>
+    <title>Check-in Manual Supervisor - v2.0</title>
     <style>
         * {
             margin: 0;
@@ -25,9 +25,10 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            max-width: 550px;
+            max-width: 600px;
             width: 100%;
             padding: 40px;
+            position: relative;
         }
         
         .header {
@@ -45,6 +46,48 @@
         .header .subtitle {
             color: #7f8c8d;
             font-size: 16px;
+        }
+        
+        /* Contexto del error/solicitud */
+        .context-alert {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #f39c12;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .context-alert.critico {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-color: #dc3545;
+        }
+        
+        .context-alert h3 {
+            color: #d68910;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .context-alert.critico h3 {
+            color: #721c24;
+        }
+        
+        .context-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .context-item {
+            background: rgba(255,255,255,0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .context-item strong {
+            color: #2c3e50;
         }
         
         .form-group {
@@ -80,9 +123,21 @@
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
         
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
-            color: #95a5a6;
+        .form-group.readonly input,
+        .form-group.readonly select {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        .readonly-badge {
+            display: inline-block;
+            background: #95a5a6;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
         }
         
         .pin-group {
@@ -91,6 +146,7 @@
             border-radius: 15px;
             padding: 20px;
             margin: 25px 0;
+            position: relative;
         }
         
         .pin-group label {
@@ -107,6 +163,24 @@
             letter-spacing: 4px;
         }
         
+        .pin-input.valid {
+            border-color: #27ae60 !important;
+            background: #d5f4e6 !important;
+        }
+        
+        .pin-input.invalid {
+            border-color: #e74c3c !important;
+            background: #fadbd8 !important;
+        }
+        
+        .pin-status {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+        }
+        
         .pin-warning {
             margin-top: 10px;
             color: #d68910;
@@ -115,6 +189,28 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        
+        /* Motivo con indicador de cambio */
+        .motivo-group {
+            position: relative;
+        }
+        
+        .motivo-changed {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+            border: 2px solid #28a745;
+        }
+        
+        .motivo-badge {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            z-index: 1;
         }
         
         .submit-btn {
@@ -132,13 +228,22 @@
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
         }
         
-        .submit-btn:hover {
+        .submit-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
         }
         
-        .submit-btn:active {
-            transform: translateY(0);
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #bdc3c7 100%);
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
         }
         
         .footer-note {
@@ -149,9 +254,58 @@
             line-height: 1.5;
         }
         
-        .icon {
-            font-size: 18px;
-            margin-right: 8px;
+        .historial-errors {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .error-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 4px solid #e74c3c;
+            font-size: 13px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         @media (max-width: 600px) {
@@ -160,8 +314,8 @@
                 margin: 10px;
             }
             
-            .header h2 {
-                font-size: 24px;
+            .context-details {
+                grid-template-columns: 1fr;
             }
             
             .pin-input {
@@ -169,51 +323,43 @@
                 font-size: 20px !important;
             }
         }
-        
-        /* Estados hover para inputs */
-        .form-group input:hover,
-        .form-group select:hover,
-        .form-group textarea:hover {
-            border-color: #bdc3c7;
-        }
-        
-        /* Animación de entrada */
-        .container {
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Procesando Check-in Manual...</h3>
+            <p>Validando datos y enviando a sistema</p>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
-            <h2>🔧 CHECK-IN MANUAL - SUPERVISOR</h2>
-            <p class="subtitle">Sistema de Autorización de Presencia</p>
+            <h2>👨‍💼 CHECK-IN MANUAL - SUPERVISOR</h2>
+            <p class="subtitle">Sistema de Autorización de Presencia v2.0</p>
+        </div>
+        
+        <!-- Contexto del Error/Solicitud -->
+        <div id="context-alert" class="context-alert" style="display: none;">
+            <h3 id="context-title">📋 Contexto de la Solicitud</h3>
+            <p id="context-description"></p>
+            <div class="context-details" id="context-details"></div>
         </div>
         
         <form id="checkinForm">
             <!-- EMAIL TÉCNICO -->
-            <div class="form-group">
+            <div class="form-group" id="group-tecnico">
                 <label><span class="icon">👤</span>Email Técnico:</label>
                 <input type="email" id="tecnico" required placeholder="ejemplo.tecnico@empresa.com">
             </div>
             
             <!-- ZONA DROPDOWN -->
-            <div class="form-group">
+            <div class="form-group" id="group-zona">
                 <label><span class="icon">📍</span>Zona de Trabajo:</label>
                 <select id="zona" required>
                     <option value="">Seleccionar zona de trabajo...</option>
-                    <option value="Todas">📋 Todas las zonas</option>
+                    <option value="Todas">🌟 Todas las zonas</option>
                     <option value="Almacén">📦 Almacén</option>
                     <option value="Laboratorio">🔬 Laboratorio</option>
                     <option value="Línea-A">🏭 Línea-A</option>
@@ -227,13 +373,13 @@
             </div>
             
             <!-- EMAIL SUPERVISOR -->
-            <div class="form-group">
+            <div class="form-group" id="group-supervisor">
                 <label><span class="icon">📞</span>Email Supervisor:</label>
                 <input type="email" id="supervisor" required placeholder="supervisor.ejemplo@empresa.com">
             </div>
             
             <!-- TURNO DROPDOWN -->
-            <div class="form-group">
+            <div class="form-group" id="group-turno">
                 <label><span class="icon">⏰</span>Turno de Trabajo:</label>
                 <select id="turno" required>
                     <option value="">Seleccionar turno...</option>
@@ -241,6 +387,7 @@
                     <option value="B">🌆 Turno B (14:00-22:00)</option>
                     <option value="C">🌙 Turno C (22:00-06:00)</option>
                     <option value="Central">🏢 Central (08:00-17:00)</option>
+                    <option value="Especial">🔄 Turno Especial</option>
                 </select>
             </div>
             
@@ -251,213 +398,822 @@
                        placeholder="••••" 
                        maxlength="4" pattern="[0-9]{4}"
                        class="pin-input">
+                <div class="pin-status" id="pin-status"></div>
                 <div class="pin-warning">
                     <span>⚠️</span>
                     <span>Solo supervisores autorizados pueden procesar check-ins manuales</span>
                 </div>
             </div>
             
-            <!-- MOTIVO -->
-            <div class="form-group">
+            <!-- MOTIVO CON DETECCIÓN DE CAMBIOS -->
+            <div class="form-group motivo-group" id="group-motivo">
                 <label><span class="icon">📝</span>Motivo del Check-in Manual:</label>
                 <select id="motivo" required>
                     <option value="">Seleccionar motivo...</option>
-                    <!-- Errores GPS específicos -->
-                    <option value="Permisos de ubicación denegados">📱 Permisos de ubicación denegados</option>
-                    <option value="Ubicación no disponible">📶 Ubicación no disponible</option>
-                    <option value="Tiempo agotado obteniendo GPS">⏰ Tiempo agotado obteniendo GPS</option>
-                    <option value="GPS no soportado en este dispositivo">🔧 GPS no soportado en este dispositivo</option>
-                    <option value="GPS impreciso">📏 GPS impreciso</option>
-                    <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
-                    <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
-                    <!-- Motivos generales -->
-                    <option value="🔋 Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
-                    <option value="📶 Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
-                    <option value="🚨 Emergencia operacional">🚨 Emergencia operacional</option>
-                    <option value="🔧 Equipo/tablet empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
-                    <option value="🏥 Problema médico leve (presente)">🏥 Problema médico leve (presente)</option>
-                    <option value="🕐 Llegada tardía justificada">🕐 Llegada tardía justificada</option>
-                    <option value="⚠️ Error técnico del sistema">⚠️ Error técnico del sistema</option>
-                    <option value="📝 Otro motivo">📝 Otro motivo</option>
+                    
+                    <!-- Errores GPS/Técnicos -->
+                    <optgroup label="🔧 Errores Técnicos GPS">
+                        <option value="Permisos de ubicación denegados">📱 Permisos de ubicación denegados</option>
+                        <option value="Ubicación no disponible">📶 Ubicación no disponible</option>
+                        <option value="Tiempo agotado obteniendo GPS">⏰ Tiempo agotado obteniendo GPS</option>
+                        <option value="GPS no soportado en dispositivo">🔧 GPS no soportado en dispositivo</option>
+                        <option value="GPS impreciso">📏 GPS impreciso</option>
+                        <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
+                        <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
+                        <option value="Error técnico del sistema">⚠️ Error técnico del sistema</option>
+                    </optgroup>
+                    
+                    <!-- Motivos Situacionales -->
+                    <optgroup label="🚨 Situaciones Especiales">
+                        <option value="Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
+                        <option value="Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
+                        <option value="Emergencia operacional">🚨 Emergencia operacional</option>
+                        <option value="Equipo empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
+                        <option value="Problema médico leve presente">🏥 Problema médico leve (presente)</option>
+                        <option value="Llegada tardía justificada">🕐 Llegada tardía justificada</option>
+                        <option value="Cambio turno urgente">🔄 Cambio de turno urgente</option>
+                        <option value="Técnico en otra zona autorizada">🗺️ Técnico en otra zona autorizada</option>
+                        <option value="Problemas transporte público">🚌 Problemas transporte público</option>
+                        <option value="Condiciones climáticas adversas">🌧️ Condiciones climáticas adversas</option>
+                        <option value="Otro motivo">📝 Otro motivo</option>
+                    </optgroup>
                 </select>
+                <div id="motivo-badge" class="motivo-badge" style="display: none;">MODIFICADO</div>
             </div>
             
             <!-- OBSERVACIONES -->
             <div class="form-group">
-                <label><span class="icon">💬</span>Observaciones Adicionales (opcional):</label>
-                <textarea id="observaciones" placeholder="Detalles adicionales del motivo, contexto o información relevante..." rows="3"></textarea>
+                <label><span class="icon">💬</span>Observaciones del Supervisor:</label>
+                <textarea id="observaciones" placeholder="Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc..." rows="4"></textarea>
             </div>
             
-            <button type="submit" class="submit-btn">
+            <!-- Historial de errores si existe -->
+            <div id="historial-container" style="display: none;">
+                <h4>📊 Historial de Intentos GPS</h4>
+                <div id="historial-errors" class="historial-errors"></div>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submit-btn">
                 ✅ AUTORIZAR CHECK-IN MANUAL
+            </button>
+            
+            <button type="button" class="submit-btn btn-secondary" onclick="rechazarCheckin()">
+                ❌ RECHAZAR SOLICITUD
             </button>
             
             <div class="footer-note">
                 <p>🔒 Información protegida y auditada</p>
-                <p>⚠️ Solo usar cuando el técnico esté físicamente presente</p>
+                <p>⚠️ Solo usar cuando el técnico esté físicamente presente o confirmado</p>
+                <p>📞 En caso de duda, contactar directamente con el técnico</p>
             </div>
         </form>
     </div>
     
     <script>
-        // CARGAR DATOS AL INICIAR
+        // ========================================
+        // 🔧 VARIABLES GLOBALES Y CONFIGURACIÓN
+        // ========================================
+        
+        let datosOriginales = {};
+        let esErrorCritico = false;
+        let historialErrores = [];
+        let motivoOriginal = '';
+        let pinValidado = false;
+        
+        // URLs de webhooks
+        const WEBHOOK_MANUAL = 'https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a';
+        const WEBHOOK_RECHAZO = 'https://hook.eu2.make.com/rechazar_checkin_manual';
+        const WEBHOOK_VALIDAR_PIN = 'https://hook.eu2.make.com/validar_pin_supervisor';
+        
+        // ========================================
+        // ⚙️ INICIALIZACIÓN Y CARGA DE DATOS
+        // ========================================
+        
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
-            
-            // Auto-completar desde URL si existe
-            if (params.get('tecnico')) {
-                document.getElementById('tecnico').value = params.get('tecnico').replace('-', '@');
-            }
-            
-            if (params.get('zona')) {
-                document.getElementById('zona').value = params.get('zona');
-            }
-            
-            if (params.get('supervisor')) {
-                document.getElementById('supervisor').value = params.get('supervisor').replace('-', '@');
-            }
-            
-            if (params.get('turno')) {
-                document.getElementById('turno').value = params.get('turno');
-            }
-            
-            // Pre-seleccionar motivo basado en error_message
-            if (params.get('error_message')) {
-                const errorMessage = decodeURIComponent(params.get('error_message'));
-                
-                // Buscar coincidencia exacta o parcial
-                const motivoSelect = document.getElementById('motivo');
-                let encontrado = false;
-                
-                // Buscar coincidencia exacta
-                for (let option of motivoSelect.options) {
-                    if (option.value === errorMessage) {
-                        option.selected = true;
-                        encontrado = true;
-                        break;
-                    }
-                }
-                
-                // Si no encuentra exacta, buscar parcial para casos dinámicos
-                if (!encontrado) {
-                    for (let option of motivoSelect.options) {
-                        // Para "GPS impreciso: 150m" buscar "GPS impreciso"
-                        if (errorMessage.includes('GPS impreciso') && option.value.includes('GPS impreciso')) {
-                            option.selected = true;
-                            encontrado = true;
-                            break;
-                        }
-                        // Para "Ubicación fuera de España: 40.123, 3.456" buscar "Ubicación fuera de España"
-                        if (errorMessage.includes('Ubicación fuera de España') && option.value.includes('Ubicación fuera de España')) {
-                            option.selected = true;
-                            encontrado = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Si no encuentra ninguna coincidencia, dejar vacío para que el supervisor elija
-                if (!encontrado) {
-                    console.log('No se encontró coincidencia para:', errorMessage);
-                }
-            }
-            
-            // Auto-detectar turno por hora SOLO si no viene en URL
-            if (!params.get('turno')) {
-                const horaActual = new Date().getHours();
-                let turnoSugerido = "";
-                
-                if (horaActual >= 6 && horaActual < 14) {
-                    turnoSugerido = "A";
-                } else if (horaActual >= 14 && horaActual < 22) {
-                    turnoSugerido = "B";
-                } else if (horaActual >= 8 && horaActual < 17) {
-                    turnoSugerido = "Central";
-                } else {
-                    turnoSugerido = "C";
-                }
-                
-                document.getElementById('turno').value = turnoSugerido;
-            }
+            cargarDatosDesdeURL(params);
+            configurarEventListeners();
+            mostrarContextoSolicitud(params);
         };
         
-        // ENVÍO FORMULARIO
-        document.getElementById('checkinForm').addEventListener('submit', function(e) {
+        function cargarDatosDesdeURL(params) {
+            // Cargar datos básicos
+            const campos = ['tecnico', 'zona', 'supervisor', 'turno'];
+            campos.forEach(campo => {
+                const valor = params.get(campo);
+                if (valor) {
+                    const elemento = document.getElementById(campo);
+                    elemento.value = valor.replace('-', '@');
+                    datosOriginales[campo] = valor;
+                    
+                    // Marcar como readonly si viene pre-llenado
+                    marcarComoReadonly(campo);
+                }
+            });
+            
+            // Cargar motivo original y pre-seleccionar
+            motivoOriginal = params.get('error_message') || params.get('motivo') || '';
+            if (motivoOriginal) {
+                preseleccionarMotivo(decodeURIComponent(motivoOriginal));
+            }
+            
+            // Cargar historial de errores si existe
+            const historial = params.get('historial_errores');
+            if (historial) {
+                try {
+                    historialErrores = JSON.parse(decodeURIComponent(historial));
+                    mostrarHistorialErrores();
+                } catch (e) {
+                    console.log('Error parseando historial:', e);
+                }
+            }
+            
+            // Detectar si es error crítico
+            esErrorCritico = params.get('evento_critico') || params.get('critico') === 'true';
+            
+            // Auto-detectar turno por hora si no viene especificado
+            if (!params.get('turno')) {
+                autoDetectarTurno();
+            }
+        }
+        
+        function marcarComoReadonly(campo) {
+            const grupo = document.getElementById(`group-${campo}`);
+            const elemento = document.getElementById(campo);
+            const label = grupo.querySelector('label');
+            
+            grupo.classList.add('readonly');
+            elemento.setAttribute('readonly', true);
+            label.innerHTML += '<span class="readonly-badge">PRE-LLENADO</span>';
+        }
+        
+        function preseleccionarMotivo(errorOriginal) {
+            const motivoSelect = document.getElementById('motivo');
+            
+            // Mapeo de errores a opciones del formulario
+            const mapeoErrores = {
+                'Permisos de ubicación denegados': 'Permisos de ubicación denegados',
+                'Ubicación no disponible': 'Ubicación no disponible',
+                'Tiempo agotado obteniendo GPS': 'Tiempo agotado obteniendo GPS',
+                'GPS impreciso': 'GPS impreciso',
+                'GPS falló múltiples veces': 'GPS falló múltiples veces',
+                'Ubicación fuera de España': 'Ubicación fuera de España',
+                'Error técnico del sistema': 'Error técnico del sistema'
+            };
+            
+            // Buscar coincidencia exacta
+            for (let key in mapeoErrores) {
+                if (errorOriginal.includes(key)) {
+                    motivoSelect.value = mapeoErrores[key];
+                    return;
+                }
+            }
+            
+            // Si no encuentra coincidencia, buscar por patrones
+            if (errorOriginal.toLowerCase().includes('gps')) {
+                motivoSelect.value = 'GPS falló múltiples veces';
+            } else if (errorOriginal.toLowerCase().includes('permiso')) {
+                motivoSelect.value = 'Permisos de ubicación denegados';
+            } else if (errorOriginal.toLowerCase().includes('timeout') || errorOriginal.toLowerCase().includes('tiempo')) {
+                motivoSelect.value = 'Tiempo agotado obteniendo GPS';
+            }
+        }
+        
+        function autoDetectarTurno() {
+            const horaActual = new Date().getHours();
+            let turnoSugerido = "";
+            
+            if (horaActual >= 6 && horaActual < 14) {
+                turnoSugerido = "A";
+            } else if (horaActual >= 14 && horaActual < 22) {
+                turnoSugerido = "B";
+            } else if (horaActual >= 8 && horaActual < 17) {
+                turnoSugerido = "Central";
+            } else {
+                turnoSugerido = "C";
+            }
+            
+            document.getElementById('turno').value = turnoSugerido;
+        }
+        
+        // ========================================
+        // 🎨 INTERFAZ Y CONTEXTO VISUAL
+        // ========================================
+        
+        function mostrarContextoSolicitud(params) {
+            const contextAlert = document.getElementById('context-alert');
+            const contextTitle = document.getElementById('context-title');
+            const contextDescription = document.getElementById('context-description');
+            const contextDetails = document.getElementById('context-details');
+            
+            let titulo = '📋 Contexto de la Solicitud';
+            let descripcion = 'Check-in manual solicitado';
+            let detalles = [];
+            
+            // Determinar tipo de contexto
+            if (esErrorCritico) {
+                contextAlert.classList.add('critico');
+                titulo = '🚨 SOLICITUD CRÍTICA - REQUIERE ATENCIÓN INMEDIATA';
+                descripcion = 'Se ha detectado una anomalía crítica que requiere validación manual urgente.';
+            } else if (params.get('total_intentos')) {
+                titulo = '⚠️ LÍMITE DE INTENTOS GPS ALCANZADO';
+                descripcion = `El técnico agotó los ${params.get('total_intentos')} intentos de ubicación GPS disponibles.`;
+            } else if (params.get('error_message')) {
+                titulo = '🔧 ERROR TÉCNICO REPORTADO';
+                descripcion = 'El sistema GPS del técnico presentó fallos técnicos.';
+            }
+            
+            // Agregar detalles según datos disponibles
+            if (params.get('total_intentos')) {
+                detalles.push({
+                    label: 'Intentos GPS realizados:',
+                    value: `${params.get('total_intentos')} de 3 máximo`
+                });
+            }
+            
+            if (params.get('ultima_ubicacion')) {
+                detalles.push({
+                    label: 'Última ubicación reportada:',
+                    value: params.get('ultima_ubicacion')
+                });
+            }
+            
+            if (params.get('distancia_zona')) {
+                detalles.push({
+                    label: 'Distancia a zona asignada:',
+                    value: `${params.get('distancia_zona')}m`
+                });
+            }
+            
+            if (params.get('score_sospecha')) {
+                const score = parseInt(params.get('score_sospecha'));
+                detalles.push({
+                    label: 'Score de sospecha:',
+                    value: `${score}/10 ${score >= 7 ? '(ALTO RIESGO)' : score >= 4 ? '(RIESGO MEDIO)' : '(BAJO RIESGO)'}`
+                });
+            }
+            
+            const horaActual = new Date().toLocaleTimeString('es-ES', {
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+            
+            detalles.push({
+                label: 'Hora de solicitud:',
+                value: horaActual
+            });
+            
+            // Mostrar contexto
+            contextTitle.textContent = titulo;
+            contextDescription.textContent = descripcion;
+            
+            contextDetails.innerHTML = detalles.map(detalle => 
+                `<div class="context-item">
+                    <strong>${detalle.label}</strong><br>
+                    ${detalle.value}
+                </div>`
+            ).join('');
+            
+            contextAlert.style.display = 'block';
+        }
+        
+        function mostrarHistorialErrores() {
+            if (historialErrores.length === 0) return;
+            
+            const container = document.getElementById('historial-container');
+            const historialDiv = document.getElementById('historial-errors');
+            
+            historialDiv.innerHTML = historialErrores.map((error, index) => 
+                `<div class="error-item">
+                    <strong>Intento ${error.intento || index + 1}:</strong> 
+                    ${error.tipo || error.detalle || 'Error no especificado'}
+                    ${error.timestamp ? `<br><small>📅 ${new Date(error.timestamp).toLocaleString('es-ES')}</small>` : ''}
+                    ${error.accuracy ? `<br><small>📍 Precisión GPS: ${Math.round(error.accuracy)}m</small>` : ''}
+                </div>`
+            ).join('');
+            
+            container.style.display = 'block';
+        }
+        
+        // ========================================
+        // 🔐 VALIDACIÓN DE PIN EN TIEMPO REAL
+        // ========================================
+        
+        function configurarEventListeners() {
+            // Validación PIN en tiempo real
+            const pinInput = document.getElementById('supervisor_pin');
+            pinInput.addEventListener('input', manejarInputPin);
+            pinInput.addEventListener('blur', validarPinCompleto);
+            
+            // Detección de cambios en motivo
+            const motivoSelect = document.getElementById('motivo');
+            motivoSelect.addEventListener('change', detectarCambioMotivo);
+            
+            // Envío del formulario
+            document.getElementById('checkinForm').addEventListener('submit', enviarFormulario);
+        }
+        
+        function manejarInputPin(e) {
+            // Solo números
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            
+            const pin = e.target.value;
+            const status = document.getElementById('pin-status');
+            
+            if (pin.length === 0) {
+                e.target.className = 'pin-input';
+                status.textContent = '';
+            } else if (pin.length < 4) {
+                e.target.className = 'pin-input';
+                status.textContent = '⏳';
+            } else if (pin.length === 4) {
+                status.textContent = '🔍';
+                // Validar automáticamente cuando llega a 4 dígitos
+                setTimeout(() => validarPinCompleto(), 500);
+            }
+        }
+        
+        async function validarPinCompleto() {
+            const pin = document.getElementById('supervisor_pin').value;
+            const supervisor = document.getElementById('supervisor').value;
+            const pinInput = document.getElementById('supervisor_pin');
+            const status = document.getElementById('pin-status');
+            
+            if (pin.length !== 4 || !supervisor) {
+                return;
+            }
+            
+            try {
+                // Simular validación (en producción sería llamada real a API)
+                const esValido = await validarPINSupervisor(pin, supervisor);
+                
+                if (esValido) {
+                    pinInput.className = 'pin-input valid';
+                    status.textContent = '✅';
+                    pinValidado = true;
+                    habilitarFormulario();
+                } else {
+                    pinInput.className = 'pin-input invalid';
+                    status.textContent = '❌';
+                    pinValidado = false;
+                    mostrarErrorPin();
+                }
+            } catch (error) {
+                console.error('Error validando PIN:', error);
+                pinInput.className = 'pin-input invalid';
+                status.textContent = '⚠️';
+                pinValidado = false;
+            }
+        }
+        
+        async function validarPINSupervisor(pin, emailSupervisor) {
+            // En producción, esto sería una llamada real a tu webhook
+            // return fetch(`${WEBHOOK_VALIDAR_PIN}?supervisor=${emailSupervisor}&pin=${pin}`)
+            //     .then(response => response.json())
+            //     .then(result => result.valido);
+            
+            // Simulación para demo (siempre válido si es 4 dígitos)
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve(pin === '1234' || pin.length === 4); // Simular validación
+                }, 1000);
+            });
+        }
+        
+        function mostrarErrorPin() {
+            alert('❌ PIN incorrecto para este supervisor\n\nVerifica el PIN e intenta nuevamente.\nSi el problema persiste, contacta al administrador del sistema.');
+        }
+        
+        function habilitarFormulario() {
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = false;
+        }
+        
+        // ========================================
+        // 📝 DETECCIÓN DE CAMBIOS Y VALIDACIONES
+        // ========================================
+        
+        function detectarCambioMotivo() {
+            const motivoActual = document.getElementById('motivo').value;
+            const badge = document.getElementById('motivo-badge');
+            const grupo = document.getElementById('group-motivo');
+            
+            // Determinar si el motivo cambió respecto al original
+            const motivoCambio = motivoOriginal && motivoActual !== motivoOriginal && 
+                                !motivoActual.includes(motivoOriginal) && 
+                                !motivoOriginal.includes(motivoActual);
+            
+            if (motivoCambio) {
+                grupo.classList.add('motivo-changed');
+                badge.style.display = 'block';
+                
+                // Sugerir añadir observación si cambió el motivo
+                const observaciones = document.getElementById('observaciones');
+                if (!observaciones.value) {
+                    observaciones.placeholder = 'IMPORTANTE: Explica por qué el motivo real difiere del error reportado inicialmente...';
+                }
+            } else {
+                grupo.classList.remove('motivo-changed');
+                badge.style.display = 'none';
+            }
+        }
+        
+        // ========================================
+        // 📤 ENVÍO Y PROCESAMIENTO DEL FORMULARIO
+        // ========================================
+        
+        async function enviarFormulario(e) {
             e.preventDefault();
             
-            const tecnico = document.getElementById('tecnico').value;
-            const zona = document.getElementById('zona').value;
-            const supervisor = document.getElementById('supervisor').value;
-            const turno = document.getElementById('turno').value;
-            const supervisorPin = document.getElementById('supervisor_pin').value;
-            const motivo = document.getElementById('motivo').value;
-            const observaciones = document.getElementById('observaciones').value;
+            if (!validarFormularioCompleto()) {
+                return;
+            }
             
-            // Validaciones mejoradas
-            if (supervisorPin.length !== 4 || !/^\d{4}$/.test(supervisorPin)) {
-                alert('❌ PIN debe ser exactamente 4 dígitos numéricos\n\nIntenta de nuevo con un PIN válido.');
+            const datosFormulario = recopilarDatosFormulario();
+            const confirmacion = generarMensajeConfirmacion(datosFormulario);
+            
+            if (!confirm(confirmacion)) {
+                return;
+            }
+            
+            mostrarLoading(true);
+            
+            try {
+                await enviarWebhookManual(datosFormulario);
+                mostrarExitoYRedirigir();
+            } catch (error) {
+                console.error('Error enviando formulario:', error);
+                mostrarErrorEnvio(error);
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+        
+        function validarFormularioCompleto() {
+            const campos = ['tecnico', 'zona', 'supervisor', 'turno', 'motivo'];
+            
+            for (let campo of campos) {
+                const valor = document.getElementById(campo).value;
+                if (!valor) {
+                    alert(`❌ Campo requerido: ${campo.replace('_', ' ')}\n\nCompleta todos los campos obligatorios.`);
+                    document.getElementById(campo).focus();
+                    return false;
+                }
+            }
+            
+            const pin = document.getElementById('supervisor_pin').value;
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                alert('❌ PIN debe ser exactamente 4 dígitos numéricos');
                 document.getElementById('supervisor_pin').focus();
-                return;
+                return false;
             }
             
-            if (!tecnico || !zona || !supervisor || !turno || !motivo) {
-                alert('❌ Por favor completa todos los campos obligatorios\n\nRevisa que no falte ningún campo marcado como requerido.');
-                return;
+            if (!pinValidado) {
+                alert('❌ PIN no validado\n\nEspera a que se valide el PIN o verifica que sea correcto.');
+                return false;
             }
             
-            // Validar formato email
+            // Validar emails
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const tecnico = document.getElementById('tecnico').value;
+            const supervisor = document.getElementById('supervisor').value;
+            
             if (!emailRegex.test(tecnico) || !emailRegex.test(supervisor)) {
                 alert('❌ Formato de email inválido\n\nVerifica que los emails tengan el formato correcto.');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function recopilarDatosFormulario() {
+            return {
+                tecnico: document.getElementById('tecnico').value,
+                zona: document.getElementById('zona').value,
+                supervisor: document.getElementById('supervisor').value,
+                turno: document.getElementById('turno').value,
+                supervisor_pin: document.getElementById('supervisor_pin').value,
+                motivo: document.getElementById('motivo').value,
+                observaciones: document.getElementById('observaciones').value,
+                fecha: new Date().toISOString().split('T')[0],
+                fecha_completa: new Date().toISOString(),
+                manual: true,
+                motivo_original: motivoOriginal,
+                motivo_cambiado: motivoOriginal && document.getElementById('motivo').value !== motivoOriginal,
+                es_error_critico: esErrorCritico,
+                historial_errores_gps: JSON.stringify(historialErrores),
+                timestamp: Math.floor(Date.now()/1000)
+            };
+        }
+        
+        function generarMensajeConfirmacion(datos) {
+            const motivoCambiado = datos.motivo_cambiado ? '\n⚠️ MOTIVO MODIFICADO POR SUPERVISOR' : '';
+            const esCritico = datos.es_error_critico ? '\n🚨 CASO CRÍTICO - ALTA PRIORIDAD' : '';
+            
+            return `✅ CONFIRMAR CHECK-IN MANUAL${esCritico}${motivoCambiado}
+            
+📋 RESUMEN:
+• Técnico: ${datos.tecnico}
+• Zona: ${datos.zona}
+• Turno: ${datos.turno}
+• Motivo: ${datos.motivo}
+• Supervisor: ${datos.supervisor}
+
+${datos.observaciones ? `💬 Observaciones: ${datos.observaciones.substring(0, 100)}${datos.observaciones.length > 100 ? '...' : ''}` : ''}
+
+⚠️ Esta acción será registrada y auditada.
+📞 Confirma que el técnico está presente o localizable.
+
+¿Confirmas el check-in manual?`;
+        }
+        
+        async function enviarWebhookManual(datos) {
+            const url = WEBHOOK_MANUAL + '?' + new URLSearchParams(datos).toString();
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response;
+        }
+        
+        function mostrarExitoYRedirigir() {
+            alert('✅ CHECK-IN MANUAL PROCESADO EXITOSAMENTE\n\n📊 Datos enviados al sistema\n📧 Técnico y RRHH notificados\n📱 Registro guardado en Notion\n\n👍 Gracias por tu validación como supervisor');
+            
+            // Redireccionar o cerrar ventana
+            setTimeout(() => {
+                window.close() || (window.location.href = 'about:blank');
+            }, 2000);
+        }
+        
+        function mostrarErrorEnvio(error) {
+            alert(`❌ ERROR ENVIANDO CHECK-IN MANUAL\n\n🔍 Detalles técnicos:\n${error.message}\n\n📞 ACCIÓN REQUERIDA:\n• Contacta inmediatamente con IT/Sistemas\n• Confirma check-in por teléfono con el técnico\n• Informa a RRHH de la situación técnica\n\n⚠️ No cierres esta ventana hasta resolver el problema`);
+        }
+        
+        // ========================================
+        // 🚫 RECHAZO DE SOLICITUD
+        // ========================================
+        
+        function rechazarCheckin() {
+            const tecnico = document.getElementById('tecnico').value;
+            const supervisor = document.getElementById('supervisor').value;
+            
+            if (!tecnico || !supervisor) {
+                alert('❌ Faltan datos básicos para procesar el rechazo');
                 return;
             }
             
-            // Construir URL webhook con fecha completa
-            const url = "https://hook.eu2.make.com/5cbp8q391axrc7nnbsuep6cxgzyqm55a" +
-                       "?tecnico=" + encodeURIComponent(tecnico) +
-                       "&zona=" + encodeURIComponent(zona) +
-                       "&supervisor=" + encodeURIComponent(supervisor) +
-                       "&turno=" + encodeURIComponent(turno) +
-                       "&supervisor_pin=" + encodeURIComponent(supervisorPin) +
-                       "&motivo=" + encodeURIComponent(motivo) +
-                       "&observaciones=" + encodeURIComponent(observaciones) +
-                       "&fecha=" + new Date().toISOString().split('T')[0] +
-                       "&fecha_completa=" + encodeURIComponent(new Date().toISOString()) +
-                       "&manual=true" +
-                       "&timestamp=" + Math.floor(Date.now()/1000);
+            const motivoRechazo = prompt(`❌ RECHAZAR SOLICITUD CHECK-IN MANUAL
             
-            // Confirmación mejorada
-            const confirmMessage = `✅ CONFIRMAR CHECK-IN MANUAL
-            
-📋 RESUMEN:
-• Técnico: ${tecnico}
-• Zona: ${zona}
-• Turno: ${turno}
-• Motivo: ${motivo}
-• Supervisor: ${supervisor}
+Técnico: ${tecnico}
+Supervisor: ${supervisor}
 
-⚠️ Esta acción será registrada y auditada.
+📝 Indica el motivo del rechazo:
 
-¿Confirmas el check-in manual?`;
+Ejemplos:
+• Técnico no localizable telefónicamente
+• Técnico confirmó que no está en la zona
+• Sospecha de irregularidad en la solicitud
+• Falta información/documentación necesaria
+• Otro motivo (especificar)
+
+Motivo del rechazo:`);
             
-            if (confirm(confirmMessage)) {
-                // Mostrar loading
-                const btn = document.querySelector('.submit-btn');
-                btn.innerHTML = '⏳ Procesando...';
-                btn.disabled = true;
+            if (motivoRechazo && motivoRechazo.trim()) {
+                procesarRechazo(motivoRechazo.trim());
+            }
+        }
+        
+        async function procesarRechazo(motivoRechazo) {
+            const datosRechazo = {
+                tecnico: document.getElementById('tecnico').value,
+                supervisor: document.getElementById('supervisor').value,
+                zona: document.getElementById('zona').value,
+                turno: document.getElementById('turno').value,
+                motivo_rechazo: motivoRechazo,
+                fecha: new Date().toISOString().split('T')[0],
+                timestamp: Math.floor(Date.now()/1000),
+                accion: 'RECHAZO_SUPERVISOR'
+            };
+            
+            const confirmacion = `⚠️ CONFIRMAR RECHAZO DE SOLICITUD
+            
+Técnico: ${datosRechazo.tecnico}
+Motivo rechazo: ${motivoRechazo}
+
+📋 CONSECUENCIAS:
+• Se marcará como "Ausente - No Justificado"
+• Se enviará notificación a RRHH
+• Puede generar flag disciplinario
+• El técnico será notificado del rechazo
+
+¿Confirmas el RECHAZO de esta solicitud?`;
+            
+            if (confirm(confirmación)) {
+                mostrarLoading(true);
                 
-                // Pequeño delay para UX
-                setTimeout(() => {
-                    window.location.href = url;
-                }, 1000);
+                try {
+                    await enviarWebhookRechazo(datosRechazo);
+                    mostrarRechazoExitoso();
+                } catch (error) {
+                    console.error('Error enviando rechazo:', error);
+                    mostrarErrorEnvio(error);
+                } finally {
+                    mostrarLoading(false);
+                }
+            }
+        }
+        
+        async function enviarWebhookRechazo(datos) {
+            const url = WEBHOOK_RECHAZO + '?' + new URLSearchParams(datos).toString();
+            
+            const response = await fetch(url, {
+                method: 'GET'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return response;
+        }
+        
+        function mostrarRechazoExitoso() {
+            alert('❌ SOLICITUD RECHAZADA CORRECTAMENTE\n\n📊 Registro de rechazo procesado\n📧 RRHH y técnico notificados\n📝 Flag disciplinario activado\n\n⚠️ El técnico deberá justificar su ausencia\n📞 Recomendamos contacto directo con RRHH');
+            
+            setTimeout(() => {
+                window.close() || (window.location.href = 'about:blank');
+            }, 2000);
+        }
+        
+        // ========================================
+        // 🎨 UTILIDADES DE INTERFAZ
+        // ========================================
+        
+        function mostrarLoading(mostrar) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = mostrar ? 'flex' : 'none';
+            
+            if (mostrar) {
+                document.body.style.pointerEvents = 'none';
+            } else {
+                document.body.style.pointerEvents = 'auto';
+            }
+        }
+        
+        // ========================================
+        // 🔧 UTILIDADES Y HELPERS
+        // ========================================
+        
+        function formatearFecha(fecha) {
+            return new Date(fecha).toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function validarEmail(email) {
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return regex.test(email);
+        }
+        
+        // Debug: Log de datos para desarrollo
+        function logDebug(mensaje, datos) {
+            if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+                console.log(`🔍 DEBUG: ${mensaje}`, datos);
+            }
+        }
+        
+        // Prevenir cierre accidental si hay datos sin guardar
+        window.addEventListener('beforeunload', function(e) {
+            const formulario = document.getElementById('checkinForm');
+            const tieneDatos = Array.from(formulario.elements).some(element => 
+                element.value && element.value.trim() !== ''
+            );
+            
+            if (tieneDatos && !window.procesoCompletado) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de que quieres salir? Los datos del formulario se perderán.';
+                return e.returnValue;
             }
         });
         
-        // Efectos adicionales
-        document.getElementById('supervisor_pin').addEventListener('input', function(e) {
-            // Solo números
-            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        // Marcar proceso como completado para evitar warning de cierre
+        function marcarProcesoCompletado() {
+            window.procesoCompletado = true;
+        }
+        
+        // ========================================
+        // 🚀 FUNCIONES ADICIONALES DE MEJORA UX
+        // ========================================
+        
+        // Auto-guardar draft cada 30 segundos
+        setInterval(function() {
+            const formData = recopilarDatosFormulario();
+            localStorage.setItem('supervisor_draft', JSON.stringify({
+                ...formData,
+                timestamp: Date.now()
+            }));
+        }, 30000);
+        
+        // Recuperar draft al cargar si existe
+        function recuperarDraft() {
+            const draft = localStorage.getItem('supervisor_draft');
+            if (draft) {
+                try {
+                    const datos = JSON.parse(draft);
+                    const tiempoTranscurrido = Date.now() - datos.timestamp;
+                    
+                    // Solo recuperar si es reciente (menos de 1 hora)
+                    if (tiempoTranscurrido < 3600000) {
+                        if (confirm('📝 Se encontró un borrador reciente.\n¿Quieres recuperar los datos guardados?')) {
+                            // Llenar formulario con draft
+                            Object.keys(datos).forEach(key => {
+                                const elemento = document.getElementById(key);
+                                if (elemento && datos[key]) {
+                                    elemento.value = datos[key];
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Limpiar draft después de usarlo o si es muy antiguo
+                    localStorage.removeItem('supervisor_draft');
+                } catch (e) {
+                    console.error('Error recuperando draft:', e);
+                }
+            }
+        }
+        
+        // Llamar recuperar draft después de cargar datos de URL
+        setTimeout(recuperarDraft, 1000);
+        
+        // Limpiar draft cuando se complete el proceso
+        function limpiarDraft() {
+            localStorage.removeItem('supervisor_draft');
+            marcarProcesoCompletado();
+        }
+        
+        // Atajos de teclado para mejorar productividad
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter para enviar formulario
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('submit-btn').click();
+            }
+            
+            // Escape para cancelar/rechazar
+            if (e.key === 'Escape') {
+                if (confirm('❌ ¿Quieres rechazar esta solicitud de check-in?')) {
+                    rechazarCheckin();
+                }
+            }
         });
+        
+        // Mejorar accesibilidad con indicadores visuales
+        document.addEventListener('DOMContentLoaded', function() {
+            // Añadir indicadores de campos requeridos
+            const camposRequeridos = document.querySelectorAll('input[required], select[required]');
+            camposRequeridos.forEach(campo => {
+                const label = campo.closest('.form-group').querySelector('label');
+                if (label && !label.textContent.includes('*') && !campo.hasAttribute('readonly')) {
+                    label.innerHTML += ' <span style="color: #e74c3c;">*</span>';
+                }
+            });
+            
+            // Añadir tooltips informativos
+            const tooltips = {
+                'supervisor_pin': 'PIN de 4 dígitos asignado por el administrador del sistema',
+                'motivo': 'Selecciona el motivo más específico que describa la situación',
+                'observaciones': 'Añade cualquier contexto adicional que ayude a entender la situación'
+            };
+            
+            Object.entries(tooltips).forEach(([id, texto]) => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.title = texto;
+                }
+            });
+        });
+        
+        // Log final para debugging
+        logDebug('Formulario supervisor inicializado', {
+            esErrorCritico,
+            motivoOriginal,
+            historialErrores: historialErrores.length,
+            datosOriginales
+        });
+        
     </script>
 </body>
 </html>
