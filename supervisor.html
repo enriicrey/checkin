@@ -349,7 +349,7 @@
             <!-- ✅ ZONA OPTIMIZADA: Se rellena automáticamente con zona_principal -->
             <div class="form-group" id="group-zona">
                 <label><span class="icon">📍</span>Zona de Trabajo:</label>
-                <select id="zona_utilizada" required>
+                <select id="zona" required>
                     <option value="">Seleccionar zona de trabajo...</option>
                     <option value="Todas">🌟 Todas las zonas</option>
                     <option value="Almacén">📦 Almacén</option>
@@ -485,7 +485,7 @@
             // Cargar parametrosURL unificados
             parametrosURL = {
                 tecnico: params.get('t') || params.get('tecnico') || '',
-                zona_principal: params.get('z') || params.get('zona_principal') || '',
+                zona_principal: params.get('z') || params.get('zona') || '',
                 supervisor: params.get('s') || params.get('supervisor') || '',
                 turno: params.get('tu') || params.get('turno') || '',
                 fecha_evento: params.get('f') || params.get('fecha_evento') || new Date().toISOString().split('T')[0],
