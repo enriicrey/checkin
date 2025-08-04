@@ -1087,31 +1087,33 @@
         // ❌ MANEJO DE ERRORES GPS
         // ========================================
         
-        function errorGPS(error) {
-            console.log(`⚠️ Error GPS detectado: Código ${error.code}`);
-            
-            // Incrementar contador unificado
-            intentosGPS++;
-            
-            // Clasificar tipo de error técnico
-            const { tipoError, mensajeError } = clasificarErrorGPS(error);
-            
-            // Crear evento del error
-            const evento = {
-                intento: intentosGPS,
-                timestamp: new Date().toISOString(),
-                tipo: tipoError,
-                detalle: mensajeError,
-                codigo_error: error.code,
-                mensaje_navegador: error.message,
-                nivel_criticidad: 'NORMAL'
-            };
-            
-            console.log(`⚠️ Error GPS: ${tipoError} (Intento ${intentosGPS}/${CONFIG.MAX_INTENTOS})`);
-            
-            // Todos los errores técnicos siguen lógica de reintentos
-            manejarErrorConReintentos(tipoError, evento, mensajeError);
-        }
+function errorGPS(error) {
+    console.log(`⚠️ Error GPS detectado: Código ${error.code}`);
+    
+    intentosGPS++;
+    
+    const { tipoError, mensajeError } = clasificarErrorGPS(error);
+    
+    // ✅ AÑADIR zona_intentada a TODOS los eventos de error
+    const evento = {
+        intento: intentosGPS,
+        timestamp: new Date().toISOString(),
+        tipo: tipoError,
+        detalle: mensajeError,
+        codigo_error: error.code,
+        mensaje_navegador: error.message,
+        nivel_criticidad: 'NORMAL',
+        // ✅ NUEVOS CAMPOS CRÍTICOS:
+        zona_intentada: zonaSeleccionada,
+        es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal,
+        motivo_cambio: motivoSeleccionado || null
+    };
+
+    console.log(`⚠️ Error GPS: ${tipoError} en zona ${zonaSeleccionada} (Intento ${intentosGPS}/${CONFIG.MAX_INTENTOS})`);
+    
+    manejarErrorConReintentos(tipoError, evento, mensajeError);
+}
+
         
         function clasificarErrorGPS(error) {
             switch(error.code) {
@@ -1151,16 +1153,19 @@
             const scoreFinal = Math.max(scoreCritico, 8);
             
             // Registrar en historial con score crítico
-            const evento = {
-                intento: intentosGPS + 1,
-                timestamp: new Date().toISOString(),
-                tipo: tipo,
-                detalle: mensaje,
-                datos_completos: datos,
-                nivel_criticidad: 'CRITICO',
-                score_sospecha: scoreFinal,
-                gps_potencialmente_falso: true
-            };
+                const evento = {
+        intento: intentosGPS + 1,
+        timestamp: new Date().toISOString(),
+        tipo: tipo,
+        detalle: mensaje,
+        datos_completos: datos,
+        nivel_criticidad: 'CRITICO',
+        score_sospecha: scoreFinal,
+        gps_potencialmente_falso: true,
+        zona_intentada: zonaSeleccionada,
+        es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal,
+        motivo_cambio: motivoSeleccionado || null
+    };
             
             historialErroresGPS.push(evento);
             
@@ -1891,17 +1896,21 @@ function enviarSolicitudManual(infoSolicitud) {
         // 🔧 FUNCIONES AUXILIARES Y UTILIDADES
         // ========================================
         
-        function crearEventoGPS(intento, lat, lng, accuracy, dispositivo, anomalias) {
-            return {
-                intento: intento,
-                timestamp: new Date().toISOString(),
-                lat: lat,
-                lng: lng,
-                accuracy: accuracy,
-                dispositivo: dispositivo,
-                anomalias: anomalias
-            };
-        }
+function crearEventoGPS(intento, lat, lng, accuracy, dispositivo, anomalias) {
+    return {
+        intento: intento,
+        timestamp: new Date().toISOString(),
+        lat: lat,
+        lng: lng,
+        accuracy: accuracy,
+        dispositivo: dispositivo,
+        anomalias: anomalias,
+        // ✅ AÑADIR campos de zona consistentes:
+        zona_intentada: zonaSeleccionada,
+        es_zona_secundaria: zonaSeleccionada !== parametrosURL.zona_principal,
+        motivo_cambio: motivoSeleccionado || null
+    };
+}
         
         function calcularDistancia(lat1, lon1, lat2, lon2) {
             const R = 6371000; // Radio de la Tierra en metros
