@@ -347,7 +347,7 @@
             </div>
             
             <!-- ✅ ZONA OPTIMIZADA: Se rellena automáticamente con zona_principal -->
-            <div class="form-group" id="group-zona_utilizada">
+            <div class="form-group" id="group-zona">
                 <label><span class="icon">📍</span>Zona de Trabajo:</label>
                 <select id="zona_utilizada" required>
                     <option value="">Seleccionar zona de trabajo...</option>
@@ -498,7 +498,7 @@
             // ✅ OPTIMIZACIÓN: Auto-rellenar zona_utilizada con zona_principal
             const campos = [
                 {id: 'tecnico', param: 'tecnico'},
-                {id: 'zona_utilizada', param: 'zona_principal'}, // ✅ Auto-relleno
+                {id: 'zona', param: 'zona_principal'}, // ✅ Auto-relleno
                 {id: 'supervisor', param: 'supervisor'},
                 {id: 'turno', param: 'turno'}
             ];
@@ -1028,7 +1028,7 @@ Si el problema persiste, contacta al administrador del sistema.`;
         }
         
         function validarFormularioCompleto() {
-            const campos = ['tecnico', 'zona_utilizada', 'supervisor', 'turno', 'motivo_cambio'];
+            const campos = ['tecnico', 'zona', 'supervisor', 'turno', 'motivo_cambio'];
             
             for (let campo of campos) {
                 const valor = document.getElementById(campo).value;
@@ -1069,8 +1069,8 @@ Si el problema persiste, contacta al administrador del sistema.`;
                 // ✅ DATOS PRINCIPALES UNIFICADOS
                 tecnico: document.getElementById('tecnico').value,
                 zona_principal: parametrosURL.zona_principal,
-                zona_utilizada: document.getElementById('zona_utilizada').value,
-                es_zona_secundaria: document.getElementById('zona_utilizada').value !== parametrosURL.zona_principal,
+                zona_utilizada: document.getElementById('zona').value,
+                es_zona_secundaria: document.getElementById('zona').value !== parametrosURL.zona_principal,
                 supervisor: document.getElementById('supervisor').value,
                 turno: document.getElementById('turno').value,
                 
@@ -1202,7 +1202,7 @@ Motivo del rechazo:`);
                 tecnico: document.getElementById('tecnico').value,
                 supervisor: document.getElementById('supervisor').value,
                 zona_principal: parametrosURL.zona_principal,
-                zona_utilizada: document.getElementById('zona_utilizada').value,
+                zona_utilizada: document.getElementById('zona').value,
                 turno: document.getElementById('turno').value,
                 motivo_rechazo: motivoRechazo,
                 
