@@ -1038,8 +1038,8 @@ Si el problema persiste, contacta al administrador del sistema.`;
             mostrarLoading(true);
 
             try {
-                await enviarWebhookManual(datosFormulario);
-                mostrarExitoYRedirigir();
+                const result = await enviarWebhookManual(datosFormulario);
+                mostrarExitoYRedirigir(result); // ✅ Pasar resultado del webhook
             } catch (error) {
                 console.error('Error enviando formulario:', error);
                 mostrarErrorEnvio(error);
@@ -1113,8 +1113,8 @@ Completa todos los campos obligatorios.`);
                 zonas_secundarias: parametrosURL.zonas_secundarias,
 
                 // ✅ METADATOS OPTIMIZADOS
-                metodo_check_in: 'Supervisor',
-                ubicacion_verificada: 'true',
+                metodo_check_in: 'Manual_Supervisor',
+                ubicacion_verificada: 'Supervisor_Validado',
 
                 // ✅ DISPOSITIVO UNIFICADO
                 datos_dispositivo: JSON.stringify({
@@ -1169,11 +1169,37 @@ ${datos.observaciones ? `💬 Observaciones: ${datos.observaciones.substring(0, 
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return response;
+            // ✅ PARSEAR RESPUESTA DEL WEBHOOK
+            let result;
+            try {
+                result = await response.json();
+            } catch (parseError) {
+                // Si no es JSON, asumir éxito
+                result = { success: true, message: "Check-in procesado" };
+            }
+
+            // ✅ VALIDAR RESPUESTA DEL MAKE.COM
+            if (result.success === false) {
+                throw new Error(result.message || result.error || 'Error desconocido del servidor');
+            }
+
+            return result;
         }
 
-        function mostrarExitoYRedirigir() {
-            alert('✅ CHECK-IN MANUAL PROCESADO EXITOSAMENTE\n\n📊 Datos enviados al sistema\n📧 Técnico y RRHH notificados\n📱 Registro guardado en Notion\n\n👍 Gracias por tu validación como supervisor');
+        function mostrarExitoYRedirigir(result = {}) {
+            const mensaje = result.message || 'CHECK-IN MANUAL PROCESADO EXITOSAMENTE';
+            const tecnico = result.tecnico || document.getElementById('tecnico').value;
+            const zona = result.zona || document.getElementById('zona').value;
+
+            alert(`✅ ${mensaje}
+
+👤 Técnico: ${tecnico}
+📍 Zona: ${zona}
+📊 Datos enviados al sistema
+📧 Notificaciones enviadas
+📱 Registro guardado en Notion
+
+👍 Gracias por tu validación como supervisor`);
 
             setTimeout(() => {
                 window.close() || (window.location.href = 'about:blank');
@@ -1181,17 +1207,38 @@ ${datos.observaciones ? `💬 Observaciones: ${datos.observaciones.substring(0, 
         }
 
         function mostrarErrorEnvio(error) {
-            alert(`❌ ERROR ENVIANDO CHECK-IN MANUAL
-
-🔍 Detalles técnicos:
-${error.message}
-
-📞 ACCIÓN REQUERIDA:
-• Contacta inmediatamente con IT/Sistemas
+            let mensaje = `❌ ERROR PROCESANDO CHECK-IN MANUAL`;
+            let detalles = error.message;
+            let acciones = `📞 ACCIÓN REQUERIDA:
+• Contacta inmediatamente con IT/Sistemas  
 • Confirma check-in por teléfono con el técnico
 • Informa a RRHH de la situación técnica
 
-⚠️ No cierres esta ventana hasta resolver el problema`);
+⚠️ No cierres esta ventana hasta resolver el problema`;
+
+            // ✅ MANEJO ESPECÍFICO DE ERRORES DEL SERVIDOR
+            if (error.message.includes('TECNICO_NO_ENCONTRADO')) {
+                mensaje = `❌ TÉCNICO NO ENCONTRADO`;
+                detalles = `El técnico ${document.getElementById('tecnico').value} no existe en el sistema`;
+                acciones = `📞 ACCIÓN REQUERIDA:
+• Verifica el email del técnico
+• Contacta con RRHH para confirmar el registro
+• Si es un técnico nuevo, debe ser dado de alta primero`;
+            } else if (error.message.includes('PIN_INVALIDO')) {
+                mensaje = `❌ PIN SUPERVISOR INCORRECTO`;
+                detalles = `El PIN introducido no coincide con el asignado a este supervisor`;
+                acciones = `📞 ACCIÓN REQUERIDA:
+• Verifica tu PIN de supervisor
+• Si olvidaste tu PIN, contacta al administrador
+• El PIN debe ser exactamente 4 dígitos`;
+            }
+
+            alert(`${mensaje}
+
+🔍 Detalles:
+${detalles}
+
+${acciones}`);
         }
 
         // ========================================
@@ -1249,8 +1296,8 @@ Motivo del rechazo:`);
 
                 // Metadatos
                 accion: 'RECHAZO_SUPERVISOR',
-                metodo_check_in: 'Rechazado',
-                ubicacion_verificada: 'false',
+                metodo_check_in: 'RECHAZADO_SUPERVISOR',
+                ubicacion_verificada: 'NO_VERIFICADA',
                 observaciones_sistema: `Rechazado por supervisor: ${motivoRechazo}`,
 
                 // Error context
