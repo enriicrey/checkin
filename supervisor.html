@@ -453,7 +453,7 @@
                 <div id="historial-errors" class="historial-errors"></div>
             </div>
             
-            <button type="submit" class="submit-btn" id="submit-btn">
+            <button type="submit" class="submit-btn" id="submit-btn" disabled>
                 ✅ AUTORIZAR CHECK-IN MANUAL
             </button>
             
@@ -476,9 +476,10 @@
         
         let datosOriginales = {};
         let esErrorCritico = false;
-        let historialErrores = [];
+        let historialErroresGPS = []; // ✅ UNIFICADO: historialErrores → historialErroresGPS
         let motivoOriginal = '';
         let pinValidado = false;
+        let parametrosURL = {}; // ✅ AÑADIDO: Variable faltante
         
         // URLs de webhooks
         const WEBHOOK_MANUAL = 'https://hook.eu2.make.com/wve7gq8kh6ytw6tq4vfxiepi928n2yk8';
@@ -497,6 +498,19 @@
         };
         
         function cargarDatosDesdeURL(params) {
+            // ✅ AÑADIDO: Cargar parametrosURL para usar en funciones
+            parametrosURL = {
+                tecnico: params.get('t') || params.get('tecnico') || '',
+                zona_principal: params.get('z') || params.get('zona_principal') || '',
+                supervisor: params.get('s') || params.get('supervisor') || '',
+                turno: params.get('tu') || params.get('turno') || '',
+                fecha_evento: params.get('f') || params.get('fecha_evento') || '',
+                horario_turno: params.get('h') || params.get('horario_turno') || '',
+                telefono: params.get('tel') || params.get('telefono') || '',
+                hash_validacion: params.get('hash') || params.get('hash_validacion') || '',
+                zonas_secundarias: params.get('zs') || params.get('zonas_secundarias') || ''
+            };
+            
             // Cargar datos básicos
             const campos = ['tecnico', 'zona', 'supervisor', 'turno'];
             campos.forEach(campo => {
@@ -517,11 +531,11 @@
                 preseleccionarMotivo(decodeURIComponent(motivoOriginal));
             }
             
-            // Cargar historial de errores si existe
-            const historial = params.get('historial_errores');
+            // ✅ UNIFICADO: historial_errores → historial_completo
+            const historial = params.get('historial_completo') || params.get('historial_errores');
             if (historial) {
                 try {
-                    historialErrores = JSON.parse(decodeURIComponent(historial));
+                    historialErroresGPS = JSON.parse(decodeURIComponent(historial));
                     mostrarHistorialErrores();
                 } catch (e) {
                     console.log('Error parseando historial:', e);
@@ -678,12 +692,12 @@
         }
         
         function mostrarHistorialErrores() {
-            if (historialErrores.length === 0) return;
+            if (historialErroresGPS.length === 0) return;
             
             const container = document.getElementById('historial-container');
             const historialDiv = document.getElementById('historial-errors');
             
-            historialDiv.innerHTML = historialErrores.map((error, index) => 
+            historialDiv.innerHTML = historialErroresGPS.map((error, index) => 
                 `<div class="error-item">
                     <strong>Intento ${error.intento || index + 1}:</strong> 
                     ${error.tipo || error.detalle || 'Error no especificado'}
@@ -696,7 +710,7 @@
         }
         
         // ========================================
-        // 🔐 VALIDACIÓN DE PIN EN TIEMPO REAL
+        // 🔐 VALIDACIÓN DE PIN EN TIEMPO REAL - ✅ CORREGIDA
         // ========================================
         
         function configurarEventListeners() {
@@ -744,7 +758,6 @@
             }
             
             try {
-                // Simular validación (en producción sería llamada real a API)
                 const esValido = await validarPINSupervisor(pin, supervisor);
                 
                 if (esValido) {
@@ -766,22 +779,97 @@
             }
         }
         
+        // ✅ CORRECCIÓN 1: VALIDACIÓN REAL DEL PIN
         async function validarPINSupervisor(pin, emailSupervisor) {
-            // En producción, esto sería una llamada real a tu webhook
-            // return fetch(`${WEBHOOK_VALIDAR_PIN}?supervisor=${emailSupervisor}&pin=${pin}`)
-            //     .then(response => response.json())
-            //     .then(result => result.valido);
-            
-            // Simulación para demo (siempre válido si es 4 dígitos)
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    resolve(pin === '1234' || pin.length === 4); // Simular validación
-                }, 1000);
-            });
+            try {
+                // Construir URL con parámetros seguros
+                const url = `${WEBHOOK_VALIDAR_PIN}?supervisor=${encodeURIComponent(emailSupervisor)}&pin=${pin}&timestamp=${Date.now()}`;
+                
+                console.log('🔍 Validando PIN con webhook:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Intentar parsear respuesta JSON
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    // Si no es JSON válido, asumir que el webhook devuelve texto plano
+                    const textResult = await response.text();
+                    console.log('📝 Respuesta webhook (texto):', textResult);
+                    
+                    // Interpretar respuestas comunes de Make
+                    if (textResult.toLowerCase().includes('true') || 
+                        textResult.toLowerCase().includes('valido') || 
+                        textResult.toLowerCase().includes('success')) {
+                        return true;
+                    }
+                    return false;
+                }
+                
+                console.log('📝 Respuesta webhook (JSON):', result);
+                
+                // Verificar diferentes formatos de respuesta posibles
+                return result.valido === true || 
+                       result.valid === true || 
+                       result.success === true ||
+                       result.status === 'valid';
+                
+            } catch (error) {
+                console.error('❌ Error validando PIN:', error);
+                
+                // Mostrar error específico al usuario
+                const pinInput = document.getElementById('supervisor_pin');
+                const status = document.getElementById('pin-status');
+                
+                pinInput.className = 'pin-input invalid';
+                status.textContent = '⚠️';
+                
+                // Error más específico según el tipo
+                if (error.name === 'TypeError' || error.message.includes('fetch')) {
+                    mostrarErrorPin('Error de conexión. Verifica tu internet y reintenta.');
+                } else {
+                    mostrarErrorPin('Error del servidor. Contacta al administrador.');
+                }
+                
+                return false;
+            }
         }
         
-        function mostrarErrorPin() {
-            alert('❌ PIN incorrecto para este supervisor\n\nVerifica el PIN e intenta nuevamente.\nSi el problema persiste, contacta al administrador del sistema.');
+        // ✅ CORRECCIÓN: FUNCIÓN DE ERROR MEJORADA
+        function mostrarErrorPin(mensajePersonalizado = null) {
+            const mensajeDefault = `❌ PIN incorrecto para este supervisor
+
+Verifica el PIN e intenta nuevamente.
+Si el problema persiste, contacta al administrador del sistema.`;
+
+            const mensaje = mensajePersonalizado || mensajeDefault;
+            
+            alert(mensaje);
+            
+            // Limpiar el campo PIN para nuevo intento
+            const pinInput = document.getElementById('supervisor_pin');
+            pinInput.value = '';
+            pinInput.className = 'pin-input';
+            pinInput.focus();
+            
+            // Limpiar status
+            const status = document.getElementById('pin-status');
+            status.textContent = '';
+            
+            // Resetear validación
+            pinValidado = false;
+            
+            // Deshabilitar formulario
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
         }
         
         function habilitarFormulario() {
@@ -886,6 +974,7 @@
             return true;
         }
         
+        // ✅ VARIABLES UNIFICADAS CON PÁGINA GPS
         function recopilarDatosFormulario() {
             return {
                 tecnico: document.getElementById('tecnico').value,
@@ -898,10 +987,31 @@
                 fecha: new Date().toISOString().split('T')[0],
                 fecha_completa: new Date().toISOString(),
                 manual: true,
-                motivo_original: motivoOriginal,
+                
+                // ✅ VARIABLES UNIFICADAS (mismo nombre que página GPS):
+                zona_principal: parametrosURL.zona_principal || document.getElementById('zona').value,
+                zona_utilizada: document.getElementById('zona').value, // Cambio: zona_intentada → zona_utilizada
+                es_zona_secundaria: document.getElementById('zona').value !== parametrosURL.zona_principal,
+                motivo_cambio: document.getElementById('motivo').value, // Cambio: motivo → motivo_cambio
+                fecha_evento: parametrosURL.fecha_evento || new Date().toISOString().split('T')[0],
+                horario_turno: parametrosURL.horario_turno || '',
+                
+                // Metadatos unificados:
+                metodo_check_in: 'Manual_Supervisor', // Cambio: manual → metodo_check_in
+                ubicacion_verificada: 'Supervisor_Validado',
+                device_fingerprint: { // Cambio: datos_dispositivo → device_fingerprint
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    timestamp: Date.now(),
+                    tipo_validacion: 'SUPERVISOR_MANUAL'
+                },
+                
+                // Contexto del error:
+                error_message: motivoOriginal, // Cambio: motivo_original → error_message
                 motivo_cambiado: motivoOriginal && document.getElementById('motivo').value !== motivoOriginal,
                 es_error_critico: esErrorCritico,
-                historial_errores_gps: JSON.stringify(historialErrores),
+                historial_completo: JSON.stringify(historialErroresGPS), // Cambio: historial_errores_gps → historial_completo
+                
                 timestamp: Math.floor(Date.now()/1000)
             };
         }
@@ -958,7 +1068,7 @@ ${datos.observaciones ? `💬 Observaciones: ${datos.observaciones.substring(0, 
         }
         
         // ========================================
-        // 🚫 RECHAZO DE SOLICITUD
+        // 🚫 RECHAZO DE SOLICITUD - ✅ CORREGIDO
         // ========================================
         
         function rechazarCheckin() {
@@ -991,6 +1101,7 @@ Motivo del rechazo:`);
             }
         }
         
+        // ✅ CORRECCIÓN 2: FUNCIÓN RECHAZO CORREGIDA
         async function procesarRechazo(motivoRechazo) {
             const datosRechazo = {
                 tecnico: document.getElementById('tecnico').value,
@@ -1000,11 +1111,17 @@ Motivo del rechazo:`);
                 motivo_rechazo: motivoRechazo,
                 fecha: new Date().toISOString().split('T')[0],
                 timestamp: Math.floor(Date.now()/1000),
-                accion: 'RECHAZO_SUPERVISOR'
+                accion: 'RECHAZO_SUPERVISOR',
+                // ✅ VARIABLES UNIFICADAS CON PÁGINA GPS:
+                fecha_evento: parametrosURL.fecha_evento || new Date().toISOString().split('T')[0],
+                zona_principal: parametrosURL.zona_principal || datosRechazo.zona,
+                telefono: parametrosURL.telefono || '',
+                hash_validacion: parametrosURL.hash_validacion || ''
             };
-            
+
+            // ✅ CORRECCIÓN: Variable correctamente definida
             const confirmacion = `⚠️ CONFIRMAR RECHAZO DE SOLICITUD
-            
+
 Técnico: ${datosRechazo.tecnico}
 Motivo rechazo: ${motivoRechazo}
 
@@ -1015,10 +1132,9 @@ Motivo rechazo: ${motivoRechazo}
 • El técnico será notificado del rechazo
 
 ¿Confirmas el RECHAZO de esta solicitud?`;
-            
-            if (confirm(confirmación)) {
+
+            if (confirm(confirmacion)) { // ✅ Variable correcta
                 mostrarLoading(true);
-                
                 try {
                     await enviarWebhookRechazo(datosRechazo);
                     mostrarRechazoExitoso();
@@ -1031,17 +1147,51 @@ Motivo rechazo: ${motivoRechazo}
             }
         }
         
+        // ✅ CORRECCIÓN 3: WEBHOOK RECHAZO MEJORADO
         async function enviarWebhookRechazo(datos) {
-            const url = WEBHOOK_RECHAZO + '?' + new URLSearchParams(datos).toString();
+            // Construir parámetros unificados con página GPS
+            const parametros = {
+                // Datos básicos del rechazo
+                tecnico: datos.tecnico,
+                supervisor: datos.supervisor,
+                zona: datos.zona,
+                turno: datos.turno,
+                motivo_rechazo: datos.motivo_rechazo,
+                fecha: datos.fecha,
+                timestamp: datos.timestamp,
+                accion: datos.accion,
+                
+                // ✅ VARIABLES UNIFICADAS (mismo nombre que página GPS):
+                zona_principal: datos.zona_principal,
+                fecha_evento: datos.fecha_evento,
+                telefono: datos.telefono,
+                hash_validacion: datos.hash_validacion,
+                
+                // Contexto adicional
+                horario_turno: parametrosURL.horario_turno || '',
+                zonas_secundarias: parametrosURL.zonas_secundarias || '',
+                error_message: motivoOriginal || '', // Cambio: motivo_original → error_message
+                
+                // Metadatos del rechazo
+                metodo_check_in: 'RECHAZADO_SUPERVISOR',
+                ubicacion_verificada: 'NO_VERIFICADA',
+                observaciones_sistema: `Rechazado por supervisor: ${datos.motivo_rechazo}`
+            };
             
-            const response = await fetch(url, {
-                method: 'GET'
+            const url = WEBHOOK_RECHAZO + '?' + new URLSearchParams(parametros).toString();
+            
+            console.log('📤 Enviando rechazo a webhook:', url);
+            
+            const response = await fetch(url, { 
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
+            console.log('✅ Rechazo enviado exitosamente');
             return response;
         }
         
@@ -1185,9 +1335,15 @@ Motivo rechazo: ${motivoRechazo}
             // Añadir indicadores de campos requeridos
             const camposRequeridos = document.querySelectorAll('input[required], select[required]');
             camposRequeridos.forEach(campo => {
-                const label = campo.closest('.form-group').querySelector('label');
-                if (label && !label.textContent.includes('*') && !campo.hasAttribute('readonly')) {
-                    label.innerHTML += ' <span style="color: #e74c3c;">*</span>';
+                // Buscar contenedor padre - puede ser .form-group o .pin-group
+                const formGroup = campo.closest('.form-group') || campo.closest('.pin-group');
+                if (formGroup) {
+                    const label = formGroup.querySelector('label');
+                    if (label && !label.textContent.includes('*') && !campo.hasAttribute('readonly')) {
+                        label.innerHTML += ' <span style="color: #e74c3c;">*</span>';
+                    }
+                } else {
+                    console.warn('Campo sin contenedor .form-group o .pin-group encontrado:', campo.id || campo.name || campo);
                 }
             });
             
@@ -1210,7 +1366,7 @@ Motivo rechazo: ${motivoRechazo}
         logDebug('Formulario supervisor inicializado', {
             esErrorCritico,
             motivoOriginal,
-            historialErrores: historialErrores.length,
+            historialErrores: historialErroresGPS.length,
             datosOriginales
         });
         
