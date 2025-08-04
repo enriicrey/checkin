@@ -1171,26 +1171,30 @@
             bloquearInterfazCritica(mensaje);
         }
         
-        function enviarSupervisorInmediato(tipo, evento) {
-            const url = CONFIG.WEBHOOK_MANUAL + 
-                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                `&evento_critico=${tipo}` +
-                `&timestamp=${Date.now()}` +
-                `&coordenadas=${evento.datos_completos?.lat || 'N/A'},${evento.datos_completos?.lng || 'N/A'}` +
-                `&accuracy=${evento.datos_completos?.accuracy || 'N/A'}` +
-                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                `&zona_intentada=${encodeURIComponent(zonaSeleccionada || 'N/A')}` +
-                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                `&detalle_error=${encodeURIComponent(evento.detalle)}` +
-                `&score_sospecha=${evento.score_sospecha}` +
-                `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
-                `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}`;
-                
-            fetch(url, {method: 'GET'})
-                .then(() => console.log('✅ Supervisor notificado inmediatamente'))
-                .catch(() => console.log('❌ Error notificando supervisor'));
-        }
+function enviarSupervisorInmediato(tipo, evento) {
+    const url = CONFIG.WEBHOOK_MANUAL + 
+        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+        `&evento_critico=${tipo}` +
+        `&timestamp=${Math.floor(Date.now()/1000)}` + // ✅ CORREGIDO: segundos consistente
+        `&coordenadas=${evento.datos_completos?.lat || 'N/A'},${evento.datos_completos?.lng || 'N/A'}` +
+        `&accuracy=${evento.datos_completos?.accuracy || 'N/A'}` +
+        `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+        `&zona_utilizada=${encodeURIComponent(zonaSeleccionada || 'N/A')}` + // ✅ CORREGIDO
+        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+        `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+        `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` + // ✅ AÑADIDO
+        `&detalle_error=${encodeURIComponent(evento.detalle)}` +
+        `&error_message=${encodeURIComponent(evento.detalle)}` + // ✅ AÑADIDO para consistencia
+        `&score_sospecha=${evento.score_sospecha}` +
+        `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
+        `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}` +
+        `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` + // ✅ AÑADIDO
+        `&metodo_check_in=GPS_Critico`; // ✅ AÑADIDO
+
+    fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Supervisor notificado inmediatamente'))
+        .catch(() => console.log('❌ Error notificando supervisor'));
+}
         
         function bloquearInterfazCritica(mensaje) {
             document.getElementById('status-message').innerHTML = `
@@ -1558,50 +1562,49 @@
             };
         }
         
-        function enviarHistorialCompleto(motivo) {
-            const resumen = {
-                total_intentos: intentosGPS,
-                motivo_envio: motivo,
-                tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
-                resultado_final: 'FALLIDO',
-                timestamp_inicio: historialErroresGPS[0]?.timestamp,
-                timestamp_fin: new Date().toISOString(),
-                
-                // Métricas calculadas
-                duracion_total_segundos: Math.floor((Date.now() - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
-                distancia_promedio: Math.round(
-                    historialErroresGPS.filter(h => h.distancia_zona)
-                        .reduce((acc, h) => acc + h.distancia_zona, 0) / 
-                    historialErroresGPS.filter(h => h.distancia_zona).length
-                ) || 0,
-                accuracy_promedio: Math.round(
-                    historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length
-                ),
-                eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
-                dispositivo_estable: historialErroresGPS.every(h => 
-                    h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica
-                ),
-                plataforma_dispositivo: historialErroresGPS[0]?.dispositivo?.platform || 'unknown'
-            };
+  function enviarHistorialCompleto(motivo) {
+    const resumen = {
+        total_intentos: intentosGPS,
+        motivo_envio: motivo,
+        tipos_errores: [...new Set(historialErroresGPS.map(h => h.tipo))],
+        resultado_final: 'FALLIDO',
+        timestamp_inicio: historialErroresGPS[0]?.timestamp,
+        timestamp_fin: new Date().toISOString(),
+        duracion_total_segundos: Math.floor((Date.now() - new Date(historialErroresGPS[0]?.timestamp)) / 1000),
+        distancia_promedio: Math.round(
+            historialErroresGPS.filter(h => h.distancia_zona)
+                .reduce((acc, h) => acc + h.distancia_zona, 0) / 
+            historialErroresGPS.filter(h => h.distancia_zona).length
+        ) || 0,
+        accuracy_promedio: Math.round(
+            historialErroresGPS.reduce((acc, h) => acc + (h.accuracy || 0), 0) / historialErroresGPS.length
+        ),
+        eficiencia_gps: Math.round((1 / intentosGPS) * 100) / 100,
+        dispositivo_estable: historialErroresGPS.every(h => h.dispositivo?.ip_publica === historialErroresGPS[0]?.dispositivo?.ip_publica),
+        plataforma_dispositivo: historialErroresGPS[0]?.dispositivo?.platform || 'unknown'
+    };
             
-            const url = CONFIG.WEBHOOK_MANUAL + 
-                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                `&zona_intentada=${encodeURIComponent(zonaSeleccionada)}` +
-                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
-                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                `&motivo_envio=${motivo}` +
-                `&total_intentos=${intentosGPS}` +
-                `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
-                `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
-                `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
-                `&timestamp=${Math.floor(Date.now()/1000)}`;
-                
-            fetch(url, {method: 'GET'})
-                .then(() => console.log('✅ Historial completo enviado al supervisor'))
-                .catch(() => console.log('❌ Error enviando historial al supervisor'));
-        }
+    const url = CONFIG.WEBHOOK_MANUAL + 
+        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+        `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+        `&zona_utilizada=${encodeURIComponent(zonaSeleccionada)}` + // ✅ CORREGIDO
+        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+        `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+        `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+        `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` + // ✅ AÑADIDO
+        `&motivo_envio=${motivo}` +
+        `&total_intentos=${intentosGPS}` +
+        `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
+        `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
+        `&datos_dispositivo=${encodeURIComponent(JSON.stringify(historialErroresGPS[0]?.dispositivo || {}))}` + // ✅ AÑADIDO
+        `&metodo_check_in=GPS_Fallido` + // ✅ AÑADIDO
+        `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
+        `&timestamp=${Math.floor(Date.now()/1000)}`;
+
+    fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Historial completo enviado al supervisor'))
+        .catch(() => console.log('❌ Error enviando historial al supervisor'));
+}
         
         // ========================================
         // 📍 VALIDACIÓN DE UBICACIÓN Y ZONAS
@@ -1623,34 +1626,34 @@
             const esZonaSecundaria = zonasSecundariasArray.includes(zonaSeleccionada);
             const ubicacionReportada = `${lat.toFixed(6)},${lng.toFixed(6)}`;
             
-            if (distancia <= zona.radio) {
-                return {
-                    valido: true,
-                    codigo: "UBICACION_VALIDA",
-                    mensaje: `Check-in exitoso en ${zonaSeleccionada}`,
-                    distancia: Math.round(distancia),
-                    zona_utilizada: zonaSeleccionada,
-                    es_zona_secundaria: esZonaSecundaria,
-                    motivo_cambio: motivoSeleccionado,
-                    metodo_checkin: "GPS",
-                    ubicacion_reportada: ubicacionReportada,
-                    ubicacion_verificada: "Válida",
-                    observaciones_sistema: `GPS: ${Math.round(distancia)}m del centro de ${zonaSeleccionada}${esZonaSecundaria ? ' (zona secundaria)' : ''}`
-                };
-            }
+if (distancia <= zona.radio) {
+    return {
+        valido: true,
+        codigo: "UBICACION_VALIDA",
+        mensaje: `Check-in exitoso en ${zonaSeleccionada}`,
+        distancia: Math.round(distancia),
+        zona_utilizada: zonaSeleccionada,
+        es_zona_secundaria: esZonaSecundaria,
+        motivo_cambio: motivoSeleccionado,
+        metodo_check_in: "GPS", // ✅ CORREGIDO: metodo_checkin → metodo_check_in
+        ubicacion_reportada: ubicacionReportada,
+        ubicacion_verificada: "Válida",
+        observaciones_sistema: `GPS: ${Math.round(distancia)}m del centro de ${zonaSeleccionada}${esZonaSecundaria ? ' (zona secundaria)' : ''}`
+    };
+}
             
-            return {
-                valido: false,
-                codigo: "ZONA_LEJANA",
-                mensaje: `Alejado de ${zonaSeleccionada}`,
-                distancia: Math.round(distancia),
-                zona_utilizada: zonaSeleccionada,
-                es_zona_secundaria: esZonaSecundaria,
-                motivo_cambio: motivoSeleccionado,
-                metodo_checkin: "Manual",
-                ubicacion_reportada: ubicacionReportada,
-                ubicacion_verificada: "No Válida"
-            };
+return {
+    valido: false,
+    codigo: "ZONA_LEJANA",
+    mensaje: `Alejado de ${zonaSeleccionada}`,
+    distancia: Math.round(distancia),
+    zona_utilizada: zonaSeleccionada,
+    es_zona_secundaria: esZonaSecundaria,
+    motivo_cambio: motivoSeleccionado,
+    metodo_check_in: "Manual", // ✅ CORREGIDO: metodo_checkin → metodo_check_in
+    ubicacion_reportada: ubicacionReportada,
+    ubicacion_verificada: "No Válida"
+};
         }
         
         // ========================================
@@ -1700,36 +1703,32 @@
             }
         }
         
-        function construirURLWebhook(webhook, lat, lng, accuracy, validacion, fechaActual) {
-            return webhook + 
-                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                `&zonas_secundarias=${encodeURIComponent(parametrosURL.zonas_secundarias)}` +
-                `&zona_utilizada=${encodeURIComponent(validacion.zona_utilizada)}` +
-                `&es_zona_secundaria=${validacion.es_zona_secundaria}` +
-                `&motivo_cambio=${encodeURIComponent(validacion.motivo_cambio || '')}` +
-                `&turno=${encodeURIComponent(parametrosURL.turno)}` +
-                `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` +
-                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                `&manual=false` +
-                `&lat=${lat}&lng=${lng}&accuracy=${accuracy}` +
-                `&ubicacion_reportada=${encodeURIComponent(validacion.ubicacion_reportada || '')}` +
-                `&ubicacion_verificada=${encodeURIComponent(validacion.ubicacion_verificada || '')}` +
-                `&distancia_zona_metros=${validacion.distancia || 0}` +
-                `&metodo_check_in=${encodeURIComponent(validacion.metodo_checkin || '')}` +
-                `&observaciones_sistema=${encodeURIComponent(validacion.observaciones_sistema || '')}` +
-                `&device_type=${encodeURIComponent(getDeviceType())}` +
-                `&user_agent=${encodeURIComponent(validacion.device_fingerprint?.userAgent || '')}` +
-                `&device_risk_level=${validacion.device_fingerprint?.riskLevel || ''}` +
-                `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` +
-                `&validacion_codigo=${validacion.codigo}` +
-                `&fecha_check=${parametrosURL.fecha_evento}` +
-                `&hora_check=${encodeURIComponent(fechaActual.toTimeString().split(' ')[0])}` +
-                `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
-                `&resumen_eventos=${encodeURIComponent(JSON.stringify(validacion.resumen_eventos || {}))}` +
-                `&timestamp=${Math.floor(Date.now()/1000)}`;
-        }
+ function construirURLWebhook(webhook, lat, lng, accuracy, validacion, fechaActual) {
+    return webhook + 
+        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+        `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+        `&zonas_secundarias=${encodeURIComponent(parametrosURL.zonas_secundarias)}` +
+        `&zona_utilizada=${encodeURIComponent(validacion.zona_utilizada)}` +
+        `&es_zona_secundaria=${validacion.es_zona_secundaria}` +
+        `&motivo_cambio=${encodeURIComponent(validacion.motivo_cambio || '')}` +
+        `&turno=${encodeURIComponent(parametrosURL.turno)}` +
+        `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` +
+        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+        `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+        `&lat=${lat}&lng=${lng}&accuracy=${accuracy}` +
+        `&ubicacion_reportada=${encodeURIComponent(validacion.ubicacion_reportada || '')}` +
+        `&ubicacion_verificada=${encodeURIComponent(validacion.ubicacion_verificada || '')}` +
+        `&distancia_zona_metros=${validacion.distancia || 0}` +
+        `&metodo_check_in=${encodeURIComponent(validacion.metodo_check_in || 'GPS')}` + // ✅ CORREGIDO
+        `&observaciones_sistema=${encodeURIComponent(validacion.observaciones_sistema || '')}` +
+        `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` +
+        `&validacion_codigo=${validacion.codigo}` +
+        `&historial_completo=${encodeURIComponent(JSON.stringify(validacion.historial_completo || []))}` +
+        `&datos_dispositivo=${encodeURIComponent(JSON.stringify(validacion.device_fingerprint || {}))}` + // ✅ AÑADIDO
+        `&resumen_eventos=${encodeURIComponent(JSON.stringify(validacion.resumen_eventos || {}))}` +
+        `&timestamp=${Math.floor(Date.now()/1000)}`;
+}
+
         
         // ========================================
         // 🎨 FUNCIONES DE INTERFAZ USUARIO
@@ -1844,25 +1843,29 @@
             }
         }
         
-        function enviarSolicitudManual(infoSolicitud) {
-            const url = CONFIG.WEBHOOK_MANUAL + 
-                `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
-                `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
-                `&zona_intentada=${encodeURIComponent(zonaSeleccionada)}` +
-                `&motivo_cambio=${encodeURIComponent(motivoSeleccionado || '')}` +
-                `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
-                `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
-                `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
-                `&error_message=SOLICITUD_CHECKIN_MANUAL` +
-                `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
-                `&historial_errores=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
-                `&device_fingerprint=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` +
-                `&timestamp=${Math.floor(Date.now()/1000)}`;
-                
-            fetch(url, {method: 'GET'})
-                .then(() => console.log('✅ Solicitud manual enviada al supervisor'))
-                .catch(() => console.log('❌ Error enviando solicitud manual'));
-        }
+function enviarSolicitudManual(infoSolicitud) {
+    const url = CONFIG.WEBHOOK_MANUAL + 
+        `?tecnico=${encodeURIComponent(parametrosURL.tecnico)}` +
+        `&zona_principal=${encodeURIComponent(parametrosURL.zona_principal)}` +
+        `&zona_utilizada=${encodeURIComponent(zonaSeleccionada)}` + // ✅ CORREGIDO
+        `&es_zona_secundaria=${zonaSeleccionada !== parametrosURL.zona_principal}` + // ✅ AÑADIDO
+        `&motivo_cambio=${encodeURIComponent(motivoSeleccionado || '')}` +
+        `&supervisor=${encodeURIComponent(parametrosURL.supervisor)}` +
+        `&telefono=${encodeURIComponent(parametrosURL.telefono)}` +
+        `&fecha_evento=${encodeURIComponent(parametrosURL.fecha_evento)}` +
+        `&horario_turno=${encodeURIComponent(parametrosURL.horario_turno)}` + // ✅ AÑADIDO
+        `&hash_validacion=${encodeURIComponent(parametrosURL.hash_validacion)}` + // ✅ AÑADIDO
+        `&error_message=SOLICITUD_CHECKIN_MANUAL` +
+        `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
+        `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` + // ✅ CORREGIDO
+        `&datos_dispositivo=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` + // ✅ CORREGIDO
+        `&metodo_check_in=Solicitud_Manual` + // ✅ AÑADIDO
+        `&timestamp=${Math.floor(Date.now()/1000)}`;
+
+    fetch(url, {method: 'GET'})
+        .then(() => console.log('✅ Solicitud manual enviada al supervisor'))
+        .catch(() => console.log('❌ Error enviando solicitud manual'));
+}
         
         function mostrarConfirmacionContacto(infoSolicitud, tel) {
             document.getElementById('status-message').innerHTML = `
