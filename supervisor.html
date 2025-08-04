@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Check-in Manual Supervisor - v2.0</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -16,7 +20,7 @@
             justify-content: center;
             padding: 20px;
         }
-        
+
         .container {
             background: white;
             border-radius: 20px;
@@ -26,24 +30,24 @@
             padding: 40px;
             position: relative;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 35px;
         }
-        
+
         .header h2 {
             color: #2c3e50;
             font-size: 28px;
             font-weight: 700;
             margin-bottom: 10px;
         }
-        
+
         .header .subtitle {
             color: #7f8c8d;
             font-size: 16px;
         }
-        
+
         .context-alert {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             border: 2px solid #f39c12;
@@ -51,44 +55,44 @@
             padding: 20px;
             margin-bottom: 30px;
         }
-        
+
         .context-alert.critico {
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             border-color: #dc3545;
         }
-        
+
         .context-alert h3 {
             color: #d68910;
             margin-bottom: 10px;
             font-size: 18px;
         }
-        
+
         .context-alert.critico h3 {
             color: #721c24;
         }
-        
+
         .context-details {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-top: 15px;
         }
-        
+
         .context-item {
             background: rgba(255,255,255,0.7);
             padding: 10px;
             border-radius: 8px;
             font-size: 14px;
         }
-        
+
         .context-item strong {
             color: #2c3e50;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         .form-group label {
             display: block;
             font-weight: 600;
@@ -96,7 +100,7 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
-        
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -108,7 +112,7 @@
             transition: all 0.3s ease;
             background: #f8f9fa;
         }
-        
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
@@ -117,14 +121,14 @@
             background: white;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
-        
+
         .form-group.readonly input,
         .form-group.readonly select {
             background: #ecf0f1;
             color: #7f8c8d;
             cursor: not-allowed;
         }
-        
+
         .readonly-badge {
             display: inline-block;
             background: #95a5a6;
@@ -134,7 +138,7 @@
             border-radius: 10px;
             margin-left: 8px;
         }
-        
+
         .pin-group {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             border: 2px solid #f39c12;
@@ -143,12 +147,12 @@
             margin: 25px 0;
             position: relative;
         }
-        
+
         .pin-group label {
             color: #d68910 !important;
             font-weight: 700;
         }
-        
+
         .pin-input {
             width: 180px !important;
             text-align: center;
@@ -157,17 +161,17 @@
             border: 2px solid #f39c12 !important;
             letter-spacing: 4px;
         }
-        
+
         .pin-input.valid {
             border-color: #27ae60 !important;
             background: #d5f4e6 !important;
         }
-        
+
         .pin-input.invalid {
             border-color: #e74c3c !important;
             background: #fadbd8 !important;
         }
-        
+
         .pin-status {
             position: absolute;
             right: 20px;
@@ -175,7 +179,7 @@
             transform: translateY(-50%);
             font-size: 20px;
         }
-        
+
         .pin-warning {
             margin-top: 10px;
             color: #d68910;
@@ -185,16 +189,16 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .motivo-group {
             position: relative;
         }
-        
+
         .motivo-changed {
             background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
             border: 2px solid #28a745;
         }
-        
+
         .motivo-badge {
             position: absolute;
             top: -8px;
@@ -205,8 +209,9 @@
             padding: 2px 8px;
             border-radius: 10px;
             z-index: 1;
+            display: none;
         }
-        
+
         .submit-btn {
             width: 100%;
             background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
@@ -221,25 +226,25 @@
             margin-top: 30px;
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
         }
-        
+
         .submit-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
         }
-        
+
         .submit-btn:disabled {
             background: #95a5a6;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        
+
         .btn-secondary {
             background: linear-gradient(135deg, #95a5a6 0%, #bdc3c7 100%);
             margin-top: 15px;
             box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
         }
-        
+
         .footer-note {
             text-align: center;
             margin-top: 20px;
@@ -247,7 +252,7 @@
             font-size: 13px;
             line-height: 1.5;
         }
-        
+
         .historial-errors {
             background: #f8f9fa;
             border-radius: 10px;
@@ -256,7 +261,7 @@
             max-height: 200px;
             overflow-y: auto;
         }
-        
+
         .error-item {
             background: white;
             padding: 10px;
@@ -265,7 +270,7 @@
             border-left: 4px solid #e74c3c;
             font-size: 13px;
         }
-        
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -278,7 +283,7 @@
             justify-content: center;
             z-index: 1000;
         }
-        
+
         .loading-content {
             background: white;
             padding: 40px;
@@ -286,7 +291,7 @@
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        
+
         .loading-spinner {
             width: 40px;
             height: 40px;
@@ -296,22 +301,20 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         @media (max-width: 600px) {
             .container {
                 padding: 30px 20px;
                 margin: 10px;
             }
-            
             .context-details {
                 grid-template-columns: 1fr;
             }
-            
             .pin-input {
                 width: 150px !important;
                 font-size: 20px !important;
@@ -331,27 +334,26 @@
     <div class="container">
         <div class="header">
             <h2>👨‍💼 CHECK-IN MANUAL - SUPERVISOR</h2>
-            <p class="subtitle">Sistema de Autorización de Presencia v2.0</p>
+            <div class="subtitle">Sistema de Autorización de Presencia v2.0</div>
         </div>
-        
-        <div id="context-alert" class="context-alert" style="display: none;">
+
+        <div class="context-alert" id="context-alert" style="display: none;">
             <h3 id="context-title">📋 Contexto de la Solicitud</h3>
-            <p id="context-description"></p>
+            <p id="context-description">Check-in manual solicitado</p>
             <div class="context-details" id="context-details"></div>
         </div>
-        
+
         <form id="checkinForm">
             <div class="form-group" id="group-tecnico">
-                <label><span class="icon">👤</span>Email Técnico:</label>
-                <input type="email" id="tecnico" required placeholder="ejemplo.tecnico@empresa.com">
+                <label for="tecnico">👤Email Técnico:</label>
+                <input type="email" id="tecnico" required>
             </div>
-            
-            <!-- ✅ ZONA OPTIMIZADA: Se rellena automáticamente con zona_principal -->
+
             <div class="form-group" id="group-zona">
-                <label><span class="icon">📍</span>Zona de Trabajo:</label>
+                <label for="zona">📍Zona de Trabajo:</label>
                 <select id="zona" required>
                     <option value="">Seleccionar zona de trabajo...</option>
-                    <option value="Todas">🌟 Todas las zonas</option>
+                    <option value="Todas las zonas">🌟 Todas las zonas</option>
                     <option value="Almacén">📦 Almacén</option>
                     <option value="Laboratorio">🔬 Laboratorio</option>
                     <option value="Línea-A">🏭 Línea-A</option>
@@ -363,124 +365,114 @@
                     <option value="Utilities">⚡ Utilities</option>
                 </select>
             </div>
-            
+
             <div class="form-group" id="group-supervisor">
-                <label><span class="icon">📞</span>Email Supervisor:</label>
-                <input type="email" id="supervisor" required placeholder="supervisor.ejemplo@empresa.com">
+                <label for="supervisor">📞Email Supervisor:</label>
+                <input type="email" id="supervisor" required>
             </div>
-            
+
             <div class="form-group" id="group-turno">
-                <label><span class="icon">⏰</span>Turno de Trabajo:</label>
+                <label for="turno">⏰Turno de Trabajo:</label>
                 <select id="turno" required>
                     <option value="">Seleccionar turno...</option>
-                    <option value="A(06:00-14:00)">🌅 Turno A (06:00-14:00)</option>
-                    <option value="B(14:00-22:00)">🌆 Turno B (14:00-22:00)</option>
-                    <option value="C(22:00-06:00)">🌙 Turno C (22:00-06:00)</option>
-                    <option value="Central(08:00-17:00)">🏢 Central (08:00-17:00)</option>
+                    <option value="A">🌅 Turno A (06:00-14:00)</option>
+                    <option value="B">🌆 Turno B (14:00-22:00)</option>
+                    <option value="C">🌙 Turno C (22:00-06:00)</option>
+                    <option value="Central">🏢 Central (08:00-17:00)</option>
                     <option value="Especial">🔄 Turno Especial</option>
                 </select>
             </div>
-            
+
             <div class="pin-group">
-                <label><span class="icon">🔐</span>PIN de Autorización:</label>
-                <input type="password" id="supervisor_pin" required 
-                       placeholder="••••" 
-                       maxlength="4" pattern="[0-9]{4}"
-                       class="pin-input">
+                <label for="supervisor_pin">🔐PIN de Autorización:</label>
+                <input type="text" id="supervisor_pin" class="pin-input" maxlength="4" 
+                       placeholder="1234" required>
                 <div class="pin-status" id="pin-status"></div>
                 <div class="pin-warning">
-                    <span>⚠️</span>
-                    <span>Solo supervisores autorizados pueden procesar check-ins manuales</span>
+                    ⚠️ Solo supervisores autorizados pueden procesar check-ins manuales
                 </div>
             </div>
-            
+
             <div class="form-group motivo-group" id="group-motivo_cambio">
-                <label><span class="icon">📝</span>Motivo del Check-in Manual:</label>
+                <label for="motivo_cambio">📝Motivo del Check-in Manual:</label>
                 <select id="motivo_cambio" required>
                     <option value="">Seleccionar motivo...</option>
-                    
-                    <optgroup label="🔧 Errores Técnicos GPS">
-                        <option value="Permisos de ubicación denegados">📱 Permisos de ubicación denegados</option>
-                        <option value="Ubicación no disponible">📶 Ubicación no disponible</option>
-                        <option value="Tiempo agotado obteniendo GPS">⏰ Tiempo agotado obteniendo GPS</option>
-                        <option value="GPS no soportado en dispositivo">🔧 GPS no soportado en dispositivo</option>
-                        <option value="GPS impreciso">📏 GPS impreciso</option>
-                        <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
-                        <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
-                        <option value="Error técnico del sistema">⚠️ Error técnico del sistema</option>
-                        <option value="Técnico fuera de zona asignada">📍 Técnico fuera de zona asignada</option>
-                    </optgroup>
-                    
-                    <optgroup label="🚨 Situaciones Especiales">
-                        <option value="Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
-                        <option value="Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
-                        <option value="Emergencia operacional">🚨 Emergencia operacional</option>
-                        <option value="Equipo empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
-                        <option value="Problema médico leve presente">🏥 Problema médico leve (presente)</option>
-                        <option value="Llegada tardía justificada">🕐 Llegada tardía justificada</option>
-                        <option value="Cambio turno urgente">🔄 Cambio de turno urgente</option>
-                        <option value="Técnico en otra zona autorizada">🗺️ Técnico en otra zona autorizada</option>
-                        <option value="Problemas transporte público">🚌 Problemas transporte público</option>
-                        <option value="Condiciones climáticas adversas">🌧️ Condiciones climáticas adversas</option>
-                        <option value="Otro motivo">📝 Otro motivo</option>
-                    </optgroup>
+                    <option value="Permisos de ubicación denegados">📱 Permisos de ubicación denegados</option>
+                    <option value="Ubicación no disponible">📶 Ubicación no disponible</option>
+                    <option value="Tiempo agotado obteniendo GPS">⏰ Tiempo agotado obteniendo GPS</option>
+                    <option value="GPS no soportado en dispositivo">🔧 GPS no soportado en dispositivo</option>
+                    <option value="GPS impreciso">📏 GPS impreciso</option>
+                    <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
+                    <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
+                    <option value="Error técnico del sistema">⚠️ Error técnico del sistema</option>
+                    <option value="Técnico fuera de zona asignada">📍 Técnico fuera de zona asignada</option>
+                    <option value="Batería agotada/teléfono apagado">🔋 Batería agotada/teléfono apagado</option>
+                    <option value="Sin cobertura móvil en zona">📶 Sin cobertura móvil en zona</option>
+                    <option value="Emergencia operacional">🚨 Emergencia operacional</option>
+                    <option value="Equipo/tablet empresa sin GPS">🔧 Equipo/tablet empresa sin GPS</option>
+                    <option value="Problema médico leve (presente)">🏥 Problema médico leve (presente)</option>
+                    <option value="Llegada tardía justificada">🕐 Llegada tardía justificada</option>
+                    <option value="Cambio de turno urgente">🔄 Cambio de turno urgente</option>
+                    <option value="Técnico en otra zona autorizada">🗺️ Técnico en otra zona autorizada</option>
+                    <option value="Problemas transporte público">🚌 Problemas transporte público</option>
+                    <option value="Condiciones climáticas adversas">🌧️ Condiciones climáticas adversas</option>
+                    <option value="Otro motivo">📝 Otro motivo</option>
                 </select>
-                <div id="motivo-badge" class="motivo-badge" style="display: none;">MODIFICADO</div>
+                <div class="motivo-badge" id="motivo-badge">MODIFICADO</div>
             </div>
-            
+
             <div class="form-group">
-                <label><span class="icon">💬</span>Observaciones del Supervisor:</label>
-                <textarea id="observaciones" placeholder="Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc..." rows="4"></textarea>
+                <label for="observaciones">💬Observaciones del Supervisor:</label>
+                <textarea id="observaciones" rows="4" 
+                          placeholder="Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc..."></textarea>
             </div>
-            
+
             <div id="historial-container" style="display: none;">
                 <h4>📊 Historial de Intentos GPS</h4>
-                <div id="historial-errors" class="historial-errors"></div>
+                <div class="historial-errors" id="historial-errors"></div>
             </div>
-            
+
             <button type="submit" class="submit-btn" id="submit-btn" disabled>
                 ✅ AUTORIZAR CHECK-IN MANUAL
             </button>
-            
+
             <button type="button" class="submit-btn btn-secondary" onclick="rechazarCheckin()">
                 ❌ RECHAZAR SOLICITUD
             </button>
-            
-            <div class="footer-note">
-                <p>🔒 Información protegida y auditada</p>
-                <p>⚠️ Solo usar cuando el técnico esté físicamente presente o confirmado</p>
-                <p>📞 En caso de duda, contactar directamente con el técnico</p>
-            </div>
         </form>
+
+        <div class="footer-note">
+            🔒 Información protegida y auditada<br>
+            ⚠️ Solo usar cuando el técnico esté físicamente presente o confirmado<br>
+            📞 En caso de duda, contactar directamente con el técnico
+        </div>
     </div>
-    
+
     <script>
         // ========================================
         // 🔧 VARIABLES GLOBALES OPTIMIZADAS
         // ========================================
-        
         let datosOriginales = {};
         let esErrorCritico = false;
         let historialErroresGPS = [];
         let motivoOriginal = '';
         let pinValidado = false;
         let parametrosURL = {};
-        
+
         const WEBHOOK_MANUAL = 'https://hook.eu2.make.com/wve7gq8kh6ytw6tq4vfxiepi928n2yk8';
         const WEBHOOK_RECHAZO = 'https://hook.eu2.make.com/s4muyq3qoiskm1kgajybk25v8wxo712l';
         const WEBHOOK_VALIDAR_PIN = 'https://hook.eu2.make.com/jrfjqan7utpu25x6tjoikhn3xl6i83yu';
-        
+
         // ========================================
         // ⚙️ INICIALIZACIÓN OPTIMIZADA
         // ========================================
-        
         window.onload = function() {
             const params = new URLSearchParams(window.location.search);
             cargarDatosDesdeURL(params);
             configurarEventListeners();
             mostrarContextoSolicitud(params);
         };
-        
+
         function cargarDatosDesdeURL(params) {
             // Cargar parametrosURL unificados
             parametrosURL = {
@@ -494,7 +486,7 @@
                 hash_validacion: params.get('hash') || params.get('hash_validacion') || '',
                 zonas_secundarias: params.get('zs') || params.get('zonas_secundarias') || ''
             };
-            
+
             // ✅ OPTIMIZACIÓN: Auto-rellenar zona_utilizada con zona_principal
             const campos = [
                 {id: 'tecnico', param: 'tecnico'},
@@ -502,7 +494,7 @@
                 {id: 'supervisor', param: 'supervisor'},
                 {id: 'turno', param: 'turno'}
             ];
-            
+
             campos.forEach(campo => {
                 const valor = parametrosURL[campo.param];
                 if (valor) {
@@ -514,13 +506,13 @@
                     }
                 }
             });
-            
+
             // Cargar motivo original
             motivoOriginal = params.get('error_message') || params.get('motivo') || '';
             if (motivoOriginal) {
                 preseleccionarMotivo(decodeURIComponent(motivoOriginal));
             }
-            
+
             // Cargar historial
             const historial = params.get('historial_completo') || params.get('historial_errores');
             if (historial) {
@@ -531,134 +523,132 @@
                     console.log('Error parseando historial:', e);
                 }
             }
-            
+
             esErrorCritico = params.get('evento_critico') || params.get('critico') === 'true';
-            
+
             if (!params.get('turno')) {
                 autoDetectarTurno();
             }
         }
-        
-function marcarComoReadonly(campo) {
-    const grupo = document.getElementById(`group-${campo}`);
-    const elemento = document.getElementById(campo);
-    
-    if (elemento) {  // ✅ ASEGURAR que el elemento funcione
-        elemento.setAttribute('readonly', true);
-        
-        // Solo aplicar estilos de grupo si existe
-        if (grupo) {
-            const label = grupo.querySelector('label');
-            grupo.classList.add('readonly');
-            if (label && !label.innerHTML.includes('PRE-LLENADO')) {
-                label.innerHTML += '<span class="readonly-badge">PRE-LLENADO</span>';
-            }
-        }
-        
-        console.log(`✅ Campo ${campo} marcado como readonly`);
-    } else {
-        console.warn(`❌ Elemento ${campo} no encontrado para marcar readonly`);
-    }
-}
-        
-        function preseleccionarMotivo(errorOriginal) {
-    const motivoSelect = document.getElementById('motivo_cambio');
-    const mapeoAutomaticoErrores = {
-        // Errores técnicos GPS (mapeo exacto)
-        'PERMISOS_GPS_DENEGADOS': 'Permisos de ubicación denegados',
-        'GPS_NO_DISPONIBLE': 'Ubicación no disponible',
-        'TIMEOUT_GPS': 'Tiempo agotado obteniendo GPS',
-        'GPS_IMPRECISO': 'GPS impreciso',
-        'ERROR_GPS_DESCONOCIDO': 'Error técnico del sistema',
-        'GEOLOCATION_NO_SOPORTADO': 'GPS no soportado en dispositivo',
-        
-        // Errores de ubicación (mapeo corregido)
-        'FUERA_ZONA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
-        'ZONA_LEJANA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
-        
-        // Errores críticos
-        'FUERA_ESPANA': 'Ubicación fuera de España',
-        'GPS_SOSPECHOSO': 'Error técnico del sistema',
-        'DISPOSITIVO_SOSPECHOSO': 'Error técnico del sistema',
-        
-        // Errores de sistema
-        'LIMITE_ALCANZADO': 'GPS falló múltiples veces',
-        'COORDENADAS_INVALIDAS': 'Error técnico del sistema',
-        'COORDENADAS_NULAS': 'Error técnico del sistema'
-    };
-    
-    // ✅ MAPEO POR TEXTO (fallback)
-    const mapeoTexto = {
-        'Permisos de ubicación denegados': 'Permisos de ubicación denegados',
-        'Ubicación no disponible': 'Ubicación no disponible', 
-        'Tiempo agotado obteniendo GPS': 'Tiempo agotado obteniendo GPS',
-        'GPS impreciso': 'GPS impreciso',
-        'GPS falló múltiples veces': 'GPS falló múltiples veces',
-        'Ubicación fuera de España': 'Ubicación fuera de España',
-        'Error técnico del sistema': 'Error técnico del sistema'
-    };
-    
-    console.log('🔍 Mapeo automático para error:', errorOriginal);
-    
-    // 1. Intentar mapeo automático por tipo de error
-    for (let tipoError in mapeoAutomaticoErrores) {
-        if (errorOriginal.includes(tipoError)) {
-            motivoSelect.value = mapeoAutomaticoErrores[tipoError];
-            console.log('✅ Mapeo automático exitoso:', mapeoAutomaticoErrores[tipoError]);
-            
-            // ✅ LIMPIAR placeholder si se mapeó automáticamente
-            const observaciones = document.getElementById('observaciones');
-            if (observaciones.placeholder.includes('ERROR NO MAPEADO')) {
-                observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
-            }
-            return;
-        }
-    }
-    
-    // 2. Intentar mapeo por texto coincidente
-    for (let textoError in mapeoTexto) {
-        if (errorOriginal.includes(textoError)) {
-            motivoSelect.value = mapeoTexto[textoError];
-            console.log('✅ Mapeo por texto exitoso:', mapeoTexto[textoError]);
-            return;
-        }
-    }
-    
-    // 3. Mapeo por patrones (mejorado)
-    if (errorOriginal.toLowerCase().includes('fuera') && errorOriginal.toLowerCase().includes('zona')) {
-        motivoSelect.value = 'Técnico fuera de zona asignada';
-        console.log('✅ Mapeo por patrón: fuera de zona');
-    } else if (errorOriginal.toLowerCase().includes('gps') && errorOriginal.toLowerCase().includes('precis')) {
-        motivoSelect.value = 'GPS impreciso';
-        console.log('✅ Mapeo por patrón: GPS impreciso');
-    } else if (errorOriginal.toLowerCase().includes('gps')) {
-        motivoSelect.value = 'GPS falló múltiples veces';
-        console.log('✅ Mapeo por patrón: GPS genérico');
-    } else if (errorOriginal.toLowerCase().includes('permiso') || errorOriginal.toLowerCase().includes('denied')) {
-        motivoSelect.value = 'Permisos de ubicación denegados';
-        console.log('✅ Mapeo por patrón: permisos');
-    } else if (errorOriginal.toLowerCase().includes('timeout') || errorOriginal.toLowerCase().includes('tiempo')) {
-        motivoSelect.value = 'Tiempo agotado obteniendo GPS';
-        console.log('✅ Mapeo por patrón: timeout');
-    } else {
-        // ✅ NO SE PUDO MAPEAR - MOSTRAR AYUDA AL SUPERVISOR
-        console.warn('❌ Error no mapeado automáticamente:', errorOriginal);
-        mostrarErrorNoMapeado(errorOriginal);
-    }
-}
 
-// 3. NUEVA función para errores no mapeados:
-function mostrarErrorNoMapeado(errorOriginal) {
-    const observaciones = document.getElementById('observaciones');
-    const motivoSelect = document.getElementById('motivo_cambio');
-    
-    // ✅ MOSTRAR AYUDA EN OBSERVACIONES
-    observaciones.placeholder = `⚠️ ERROR NO MAPEADO AUTOMÁTICAMENTE - SELECCIONA MANUALMENTE
-    
+        function marcarComoReadonly(campo) {
+            const grupo = document.getElementById(`group-${campo}`);
+            const elemento = document.getElementById(campo);
+            
+            if (elemento) {
+                // ✅ ASEGURAR que el elemento funcione
+                elemento.setAttribute('readonly', true);
+                
+                // Solo aplicar estilos de grupo si existe
+                if (grupo) {
+                    const label = grupo.querySelector('label');
+                    grupo.classList.add('readonly');
+                    if (label && !label.innerHTML.includes('PRE-LLENADO')) {
+                        label.innerHTML += '<span class="readonly-badge">PRE-LLENADO</span>';
+                    }
+                }
+                console.log(`✅ Campo ${campo} marcado como readonly`);
+            } else {
+                console.warn(`❌ Elemento ${campo} no encontrado para marcar readonly`);
+            }
+        }
+
+        function preseleccionarMotivo(errorOriginal) {
+            const motivoSelect = document.getElementById('motivo_cambio');
+            
+            const mapeoAutomaticoErrores = {
+                // Errores técnicos GPS (mapeo exacto)
+                'PERMISOS_GPS_DENEGADOS': 'Permisos de ubicación denegados',
+                'GPS_NO_DISPONIBLE': 'Ubicación no disponible',
+                'TIMEOUT_GPS': 'Tiempo agotado obteniendo GPS',
+                'GPS_IMPRECISO': 'GPS impreciso',
+                'ERROR_GPS_DESCONOCIDO': 'Error técnico del sistema',
+                'GEOLOCATION_NO_SOPORTADO': 'GPS no soportado en dispositivo',
+                // Errores de ubicación (mapeo corregido)
+                'FUERA_ZONA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
+                'ZONA_LEJANA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
+                // Errores críticos
+                'FUERA_ESPANA': 'Ubicación fuera de España',
+                'GPS_SOSPECHOSO': 'Error técnico del sistema',
+                'DISPOSITIVO_SOSPECHOSO': 'Error técnico del sistema',
+                // Errores de sistema
+                'LIMITE_ALCANZADO': 'GPS falló múltiples veces',
+                'COORDENADAS_INVALIDAS': 'Error técnico del sistema',
+                'COORDENADAS_NULAS': 'Error técnico del sistema'
+            };
+
+            // ✅ MAPEO POR TEXTO (fallback)
+            const mapeoTexto = {
+                'Permisos de ubicación denegados': 'Permisos de ubicación denegados',
+                'Ubicación no disponible': 'Ubicación no disponible',
+                'Tiempo agotado obteniendo GPS': 'Tiempo agotado obteniendo GPS',
+                'GPS impreciso': 'GPS impreciso',
+                'GPS falló múltiples veces': 'GPS falló múltiples veces',
+                'Ubicación fuera de España': 'Ubicación fuera de España',
+                'Error técnico del sistema': 'Error técnico del sistema'
+            };
+
+            console.log('🔍 Mapeo automático para error:', errorOriginal);
+
+            // 1. Intentar mapeo automático por tipo de error
+            for (let tipoError in mapeoAutomaticoErrores) {
+                if (errorOriginal.includes(tipoError)) {
+                    motivoSelect.value = mapeoAutomaticoErrores[tipoError];
+                    console.log('✅ Mapeo automático exitoso:', mapeoAutomaticoErrores[tipoError]);
+                    
+                    // ✅ LIMPIAR placeholder si se mapeó automáticamente
+                    const observaciones = document.getElementById('observaciones');
+                    if (observaciones.placeholder.includes('ERROR NO MAPEADO')) {
+                        observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
+                    }
+                    return;
+                }
+            }
+
+            // 2. Intentar mapeo por texto coincidente
+            for (let textoError in mapeoTexto) {
+                if (errorOriginal.includes(textoError)) {
+                    motivoSelect.value = mapeoTexto[textoError];
+                    console.log('✅ Mapeo por texto exitoso:', mapeoTexto[textoError]);
+                    return;
+                }
+            }
+
+            // 3. Mapeo por patrones (mejorado)
+            if (errorOriginal.toLowerCase().includes('fuera') && errorOriginal.toLowerCase().includes('zona')) {
+                motivoSelect.value = 'Técnico fuera de zona asignada';
+                console.log('✅ Mapeo por patrón: fuera de zona');
+            } else if (errorOriginal.toLowerCase().includes('gps') && errorOriginal.toLowerCase().includes('precis')) {
+                motivoSelect.value = 'GPS impreciso';
+                console.log('✅ Mapeo por patrón: GPS impreciso');
+            } else if (errorOriginal.toLowerCase().includes('gps')) {
+                motivoSelect.value = 'GPS falló múltiples veces';
+                console.log('✅ Mapeo por patrón: GPS genérico');
+            } else if (errorOriginal.toLowerCase().includes('permiso') || errorOriginal.toLowerCase().includes('denied')) {
+                motivoSelect.value = 'Permisos de ubicación denegados';
+                console.log('✅ Mapeo por patrón: permisos');
+            } else if (errorOriginal.toLowerCase().includes('timeout') || errorOriginal.toLowerCase().includes('tiempo')) {
+                motivoSelect.value = 'Tiempo agotado obteniendo GPS';
+                console.log('✅ Mapeo por patrón: timeout');
+            } else {
+                // ✅ NO SE PUDO MAPEAR - MOSTRAR AYUDA AL SUPERVISOR
+                console.warn('❌ Error no mapeado automáticamente:', errorOriginal);
+                mostrarErrorNoMapeado(errorOriginal);
+            }
+        }
+
+        // 3. NUEVA función para errores no mapeados:
+        function mostrarErrorNoMapeado(errorOriginal) {
+            const observaciones = document.getElementById('observaciones');
+            const motivoSelect = document.getElementById('motivo_cambio');
+
+            // ✅ MOSTRAR AYUDA EN OBSERVACIONES
+            observaciones.placeholder = `⚠️ ERROR NO MAPEADO AUTOMÁTICAMENTE - SELECCIONA MANUALMENTE
+
 Error original: "${errorOriginal}"
 
 💡 SUGERENCIAS:
-• Si menciona "GPS" → "GPS falló múltiples veces" 
+• Si menciona "GPS" → "GPS falló múltiples veces"
 • Si menciona "ubicación" → "Ubicación no disponible"
 • Si menciona "timeout/tiempo" → "Tiempo agotado obteniendo GPS"
 • Si menciona "permisos" → "Permisos de ubicación denegados"
@@ -667,59 +657,27 @@ Error original: "${errorOriginal}"
 
 Añade aquí el contexto que consideres relevante...`;
 
-    // ✅ RESALTAR CAMPO MOTIVO
-    const grupo = document.getElementById('group-motivo_cambio');
-    grupo.style.borderColor = '#ff9800';
-    grupo.style.backgroundColor = '#fff3e0';
-    
-    // ✅ AÑADIR INDICADOR VISUAL
-    const badge = document.getElementById('motivo-badge');
-    badge.style.display = 'block';
-    badge.textContent = 'REVISAR';
-    badge.style.backgroundColor = '#ff9800';
-    
-    // ✅ SCROLL HACIA EL CAMPO
-    motivoSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
-    console.log('⚠️ Supervisor debe seleccionar motivo manualmente para:', errorOriginal);
-}
+            // ✅ RESALTAR CAMPO MOTIVO
+            const grupo = document.getElementById('group-motivo_cambio');
+            grupo.style.borderColor = '#ff9800';
+            grupo.style.backgroundColor = '#fff3e0';
 
-// 4. MEJORAR función detectarCambioMotivo() para limpiar ayuda:
-function detectarCambioMotivo() {
-    const motivoActual = document.getElementById('motivo_cambio').value;
-    const badge = document.getElementById('motivo-badge');
-    const grupo = document.getElementById('group-motivo_cambio');
-    const observaciones = document.getElementById('observaciones');
-    
-    // ✅ LIMPIAR AYUDA CUANDO SE SELECCIONE MOTIVO
-    if (motivoActual && observaciones.placeholder.includes('ERROR NO MAPEADO')) {
-        observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
-        grupo.style.borderColor = '';
-        grupo.style.backgroundColor = '';
-        
-        // Mantener badge solo si realmente cambió vs original
-        const motivoCambio = motivoOriginal && motivoActual !== motivoOriginal && 
-                            !motivoActual.includes(motivoOriginal) && 
-                            !motivoOriginal.includes(motivoActual);
-        
-        if (motivoCambio) {
-            grupo.classList.add('motivo-changed');
+            // ✅ AÑADIR INDICADOR VISUAL
+            const badge = document.getElementById('motivo-badge');
             badge.style.display = 'block';
-            badge.textContent = 'MODIFICADO';
-            badge.style.backgroundColor = '#28a745';
-        } else {
-            grupo.classList.remove('motivo-changed');
-            badge.style.display = 'none';
+            badge.textContent = 'REVISAR';
+            badge.style.backgroundColor = '#ff9800';
+
+            // ✅ SCROLL HACIA EL CAMPO
+            motivoSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            console.log('⚠️ Supervisor debe seleccionar motivo manualmente para:', errorOriginal);
         }
-    }
-}
-          
-        }
-        
+
         function autoDetectarTurno() {
             const horaActual = new Date().getHours();
             let turnoSugerido = "";
-            
+
             if (horaActual >= 6 && horaActual < 14) {
                 turnoSugerido = "A";
             } else if (horaActual >= 14 && horaActual < 22) {
@@ -729,24 +687,23 @@ function detectarCambioMotivo() {
             } else {
                 turnoSugerido = "C";
             }
-            
+
             document.getElementById('turno').value = turnoSugerido;
         }
-        
+
         // ========================================
         // 🎨 INTERFAZ Y CONTEXTO VISUAL
         // ========================================
-        
         function mostrarContextoSolicitud(params) {
             const contextAlert = document.getElementById('context-alert');
             const contextTitle = document.getElementById('context-title');
             const contextDescription = document.getElementById('context-description');
             const contextDetails = document.getElementById('context-details');
-            
+
             let titulo = '📋 Contexto de la Solicitud';
             let descripcion = 'Check-in manual solicitado';
             let detalles = [];
-            
+
             if (esErrorCritico) {
                 contextAlert.classList.add('critico');
                 titulo = '🚨 SOLICITUD CRÍTICA - REQUIERE ATENCIÓN INMEDIATA';
@@ -758,28 +715,28 @@ function detectarCambioMotivo() {
                 titulo = '🔧 ERROR TÉCNICO REPORTADO';
                 descripcion = 'El sistema GPS del técnico presentó fallos técnicos.';
             }
-            
+
             if (params.get('total_intentos')) {
                 detalles.push({
                     label: 'Intentos GPS realizados:',
                     value: `${params.get('total_intentos')} de 3 máximo`
                 });
             }
-            
+
             if (params.get('ultima_ubicacion')) {
                 detalles.push({
                     label: 'Última ubicación reportada:',
                     value: params.get('ultima_ubicacion')
                 });
             }
-            
+
             if (params.get('distancia_zona')) {
                 detalles.push({
                     label: 'Distancia a zona asignada:',
                     value: `${params.get('distancia_zona')}m`
                 });
             }
-            
+
             if (params.get('score_sospecha')) {
                 const score = parseInt(params.get('score_sospecha'));
                 detalles.push({
@@ -787,69 +744,62 @@ function detectarCambioMotivo() {
                     value: `${score}/10 ${score >= 7 ? '(ALTO RIESGO)' : score >= 4 ? '(RIESGO MEDIO)' : '(BAJO RIESGO)'}`
                 });
             }
-            
+
             const horaActual = new Date().toLocaleTimeString('es-ES', {
-                hour: '2-digit', 
+                hour: '2-digit',
                 minute: '2-digit'
             });
-            
             detalles.push({
                 label: 'Hora de solicitud:',
                 value: horaActual
             });
-            
+
             contextTitle.textContent = titulo;
             contextDescription.textContent = descripcion;
-            
-            contextDetails.innerHTML = detalles.map(detalle => 
-                `<div class="context-item">
-                    <strong>${detalle.label}</strong><br>
-                    ${detalle.value}
-                </div>`
+            contextDetails.innerHTML = detalles.map(detalle => `<div class="context-item">
+                <strong>${detalle.label}</strong><br>
+                ${detalle.value}
+            </div>`
             ).join('');
-            
+
             contextAlert.style.display = 'block';
         }
-        
+
         function mostrarHistorialErrores() {
             if (historialErroresGPS.length === 0) return;
-            
+
             const container = document.getElementById('historial-container');
             const historialDiv = document.getElementById('historial-errors');
-            
-            historialDiv.innerHTML = historialErroresGPS.map((error, index) => 
-                `<div class="error-item">
-                    <strong>Intento ${error.intento || index + 1}:</strong> 
-                    ${error.tipo || error.detalle || 'Error no especificado'}
-                    ${error.timestamp ? `<br><small>📅 ${new Date(error.timestamp).toLocaleString('es-ES')}</small>` : ''}
-                    ${error.accuracy ? `<br><small>📍 Precisión GPS: ${Math.round(error.accuracy)}m</small>` : ''}
-                </div>`
+
+            historialDiv.innerHTML = historialErroresGPS.map((error, index) => `<div class="error-item">
+                <strong>Intento ${error.intento || index + 1}:</strong> ${error.tipo || error.detalle || 'Error no especificado'}
+                ${error.timestamp ? `<br><small>📅 ${new Date(error.timestamp).toLocaleString('es-ES')}</small>` : ''}
+                ${error.accuracy ? `<br><small>📍 Precisión GPS: ${Math.round(error.accuracy)}m</small>` : ''}
+            </div>`
             ).join('');
-            
+
             container.style.display = 'block';
         }
-        
+
         // ========================================
         // 🔐 VALIDACIÓN DE PIN - CORREGIDA
         // ========================================
-        
         function configurarEventListeners() {
             const pinInput = document.getElementById('supervisor_pin');
             pinInput.addEventListener('input', manejarInputPin);
             pinInput.addEventListener('blur', validarPinCompleto);
-            
+
             const motivoSelect = document.getElementById('motivo_cambio');
             motivoSelect.addEventListener('change', detectarCambioMotivo);
-            
+
             document.getElementById('checkinForm').addEventListener('submit', enviarFormulario);
         }
-        
+
         function manejarInputPin(e) {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
-            
             const pin = e.target.value;
             const status = document.getElementById('pin-status');
-            
+
             if (pin.length === 0) {
                 e.target.className = 'pin-input';
                 status.textContent = '';
@@ -861,20 +811,20 @@ function detectarCambioMotivo() {
                 setTimeout(() => validarPinCompleto(), 500);
             }
         }
-        
+
         async function validarPinCompleto() {
             const pin = document.getElementById('supervisor_pin').value;
             const supervisor = document.getElementById('supervisor').value;
             const pinInput = document.getElementById('supervisor_pin');
             const status = document.getElementById('pin-status');
-            
+
             if (pin.length !== 4 || !supervisor) {
                 return;
             }
-            
+
             try {
                 const esValido = await validarPINSupervisor(pin, supervisor);
-                
+
                 if (esValido) {
                     pinInput.className = 'pin-input valid';
                     status.textContent = '✅';
@@ -893,29 +843,30 @@ function detectarCambioMotivo() {
                 pinValidado = false;
             }
         }
-        
+
         async function validarPINSupervisor(pin, emailSupervisor) {
             try {
                 const url = `${WEBHOOK_VALIDAR_PIN}?supervisor=${encodeURIComponent(emailSupervisor)}&pin=${pin}&timestamp=${Date.now()}`;
-                
                 console.log('🔍 Validando PIN con webhook:', url);
-                
+
                 const response = await fetch(url, {
                     method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 let result;
                 try {
                     result = await response.json();
                 } catch (parseError) {
                     const textResult = await response.text();
                     console.log('📝 Respuesta webhook (texto):', textResult);
-                    
+
                     if (textResult.toLowerCase().includes('true') || 
                         textResult.toLowerCase().includes('valido') || 
                         textResult.toLowerCase().includes('success')) {
@@ -923,33 +874,27 @@ function detectarCambioMotivo() {
                     }
                     return false;
                 }
-                
+
                 console.log('📝 Respuesta webhook (JSON):', result);
-                
-                return result.valido === true || 
-                       result.valid === true || 
-                       result.success === true ||
-                       result.status === 'valid';
-                
+                return result.valido === true || result.valid === true || result.success === true || result.status === 'valid';
+
             } catch (error) {
                 console.error('❌ Error validando PIN:', error);
-                
                 const pinInput = document.getElementById('supervisor_pin');
                 const status = document.getElementById('pin-status');
-                
+
                 pinInput.className = 'pin-input invalid';
                 status.textContent = '⚠️';
-                
+
                 if (error.name === 'TypeError' || error.message.includes('fetch')) {
                     mostrarErrorPin('Error de conexión. Verifica tu internet y reintenta.');
                 } else {
                     mostrarErrorPin('Error del servidor. Contacta al administrador.');
                 }
-                
                 return false;
             }
         }
-        
+
         function mostrarErrorPin(mensajePersonalizado = null) {
             const mensajeDefault = `❌ PIN incorrecto para este supervisor
 
@@ -957,46 +902,54 @@ Verifica el PIN e intenta nuevamente.
 Si el problema persiste, contacta al administrador del sistema.`;
 
             const mensaje = mensajePersonalizado || mensajeDefault;
-            
             alert(mensaje);
-            
+
             const pinInput = document.getElementById('supervisor_pin');
             pinInput.value = '';
             pinInput.className = 'pin-input';
             pinInput.focus();
-            
+
             const status = document.getElementById('pin-status');
             status.textContent = '';
-            
+
             pinValidado = false;
-            
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
         }
-        
+
         function habilitarFormulario() {
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = false;
         }
-        
+
         // ========================================
         // 📝 DETECCIÓN DE CAMBIOS
         // ========================================
-        
         function detectarCambioMotivo() {
             const motivoActual = document.getElementById('motivo_cambio').value;
             const badge = document.getElementById('motivo-badge');
             const grupo = document.getElementById('group-motivo_cambio');
-            
-            const motivoCambio = motivoOriginal && motivoActual !== motivoOriginal && 
+            const observaciones = document.getElementById('observaciones');
+
+            // ✅ LIMPIAR AYUDA CUANDO SE SELECCIONE MOTIVO
+            if (motivoActual && observaciones.placeholder.includes('ERROR NO MAPEADO')) {
+                observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
+                grupo.style.borderColor = '';
+                grupo.style.backgroundColor = '';
+            }
+
+            // Mantener badge solo si realmente cambió vs original
+            const motivoCambio = motivoOriginal && 
+                                motivoActual !== motivoOriginal && 
                                 !motivoActual.includes(motivoOriginal) && 
                                 !motivoOriginal.includes(motivoActual);
-            
+
             if (motivoCambio) {
                 grupo.classList.add('motivo-changed');
                 badge.style.display = 'block';
-                
-                const observaciones = document.getElementById('observaciones');
+                badge.textContent = 'MODIFICADO';
+                badge.style.backgroundColor = '#28a745';
+
                 if (!observaciones.value) {
                     observaciones.placeholder = 'IMPORTANTE: Explica por qué el motivo real difiere del error reportado inicialmente...';
                 }
@@ -1005,27 +958,26 @@ Si el problema persiste, contacta al administrador del sistema.`;
                 badge.style.display = 'none';
             }
         }
-        
+
         // ========================================
         // 📤 ENVÍO OPTIMIZADO DEL FORMULARIO
         // ========================================
-        
         async function enviarFormulario(e) {
             e.preventDefault();
-            
+
             if (!validarFormularioCompleto()) {
                 return;
             }
-            
+
             const datosFormulario = recopilarDatosFormulario();
             const confirmacion = generarMensajeConfirmacion(datosFormulario);
-            
+
             if (!confirm(confirmacion)) {
                 return;
             }
-            
+
             mostrarLoading(true);
-            
+
             try {
                 await enviarWebhookManual(datosFormulario);
                 mostrarExitoYRedirigir();
@@ -1036,43 +988,45 @@ Si el problema persiste, contacta al administrador del sistema.`;
                 mostrarLoading(false);
             }
         }
-        
+
         function validarFormularioCompleto() {
             const campos = ['tecnico', 'zona', 'supervisor', 'turno', 'motivo_cambio'];
-            
+
             for (let campo of campos) {
                 const valor = document.getElementById(campo).value;
                 if (!valor) {
-                    alert(`❌ Campo requerido: ${campo.replace('_', ' ')}\n\nCompleta todos los campos obligatorios.`);
+                    alert(`❌ Campo requerido: ${campo.replace('_', ' ')}
+
+Completa todos los campos obligatorios.`);
                     document.getElementById(campo).focus();
                     return false;
                 }
             }
-            
+
             const pin = document.getElementById('supervisor_pin').value;
             if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
                 alert('❌ PIN debe ser exactamente 4 dígitos numéricos');
                 document.getElementById('supervisor_pin').focus();
                 return false;
             }
-            
+
             if (!pinValidado) {
                 alert('❌ PIN no validado\n\nEspera a que se valide el PIN o verifica que sea correcto.');
                 return false;
             }
-            
+
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const tecnico = document.getElementById('tecnico').value;
             const supervisor = document.getElementById('supervisor').value;
-            
+
             if (!emailRegex.test(tecnico) || !emailRegex.test(supervisor)) {
                 alert('❌ Formato de email inválido\n\nVerifica que los emails tengan el formato correcto.');
                 return false;
             }
-            
+
             return true;
         }
-        
+
         // ✅ DATOS OPTIMIZADOS SIN DUPLICACIONES
         function recopilarDatosFormulario() {
             return {
@@ -1083,26 +1037,26 @@ Si el problema persiste, contacta al administrador del sistema.`;
                 es_zona_secundaria: document.getElementById('zona').value !== parametrosURL.zona_principal,
                 supervisor: document.getElementById('supervisor').value,
                 turno: document.getElementById('turno').value,
-                
+
                 // ✅ DATOS DEL SUPERVISOR
                 supervisor_pin: document.getElementById('supervisor_pin').value,
                 motivo_cambio: document.getElementById('motivo_cambio').value,
                 observaciones: document.getElementById('observaciones').value,
-                
+
                 // ✅ FECHAS OPTIMIZADAS (solo las necesarias)
                 fecha_evento: parametrosURL.fecha_evento,
                 timestamp: Math.floor(Date.now()/1000),
-                
+
                 // ✅ CONTEXTO UNIFICADO
                 horario_turno: parametrosURL.horario_turno,
                 telefono: parametrosURL.telefono,
                 hash_validacion: parametrosURL.hash_validacion,
                 zonas_secundarias: parametrosURL.zonas_secundarias,
-                
+
                 // ✅ METADATOS OPTIMIZADOS
                 metodo_check_in: 'Manual_Supervisor',
                 ubicacion_verificada: 'Supervisor_Validado',
-                
+
                 // ✅ DISPOSITIVO UNIFICADO
                 datos_dispositivo: JSON.stringify({
                     userAgent: navigator.userAgent,
@@ -1110,23 +1064,23 @@ Si el problema persiste, contacta al administrador del sistema.`;
                     timestamp: Date.now(),
                     tipo_validacion: 'SUPERVISOR_MANUAL'
                 }),
-                
+
                 // ✅ ERROR CONTEXT
                 error_message: motivoOriginal,
                 motivo_cambiado: motivoOriginal && document.getElementById('motivo_cambio').value !== motivoOriginal,
                 es_error_critico: esErrorCritico,
-                
+
                 // ✅ HISTORIAL UNIFICADO
                 historial_completo: JSON.stringify(historialErroresGPS)
             };
         }
-        
+
         function generarMensajeConfirmacion(datos) {
             const motivoCambiado = datos.motivo_cambiado ? '\n⚠️ MOTIVO MODIFICADO POR SUPERVISOR' : '';
             const esCritico = datos.es_error_critico ? '\n🚨 CASO CRÍTICO - ALTA PRIORIDAD' : '';
-            
+
             return `✅ CONFIRMAR CHECK-IN MANUAL${esCritico}${motivoCambiado}
-            
+
 📋 RESUMEN:
 • Técnico: ${datos.tecnico}
 • Zona: ${datos.zona_utilizada}
@@ -1141,51 +1095,60 @@ ${datos.observaciones ? `💬 Observaciones: ${datos.observaciones.substring(0, 
 
 ¿Confirmas el check-in manual?`;
         }
-        
+
         async function enviarWebhookManual(datos) {
             const url = WEBHOOK_MANUAL + '?' + new URLSearchParams(datos).toString();
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             return response;
         }
-        
+
         function mostrarExitoYRedirigir() {
             alert('✅ CHECK-IN MANUAL PROCESADO EXITOSAMENTE\n\n📊 Datos enviados al sistema\n📧 Técnico y RRHH notificados\n📱 Registro guardado en Notion\n\n👍 Gracias por tu validación como supervisor');
-            
+
             setTimeout(() => {
                 window.close() || (window.location.href = 'about:blank');
             }, 2000);
         }
-        
+
         function mostrarErrorEnvio(error) {
-            alert(`❌ ERROR ENVIANDO CHECK-IN MANUAL\n\n🔍 Detalles técnicos:\n${error.message}\n\n📞 ACCIÓN REQUERIDA:\n• Contacta inmediatamente con IT/Sistemas\n• Confirma check-in por teléfono con el técnico\n• Informa a RRHH de la situación técnica\n\n⚠️ No cierres esta ventana hasta resolver el problema`);
+            alert(`❌ ERROR ENVIANDO CHECK-IN MANUAL
+
+🔍 Detalles técnicos:
+${error.message}
+
+📞 ACCIÓN REQUERIDA:
+• Contacta inmediatamente con IT/Sistemas
+• Confirma check-in por teléfono con el técnico
+• Informa a RRHH de la situación técnica
+
+⚠️ No cierres esta ventana hasta resolver el problema`);
         }
-        
+
         // ========================================
         // 🚫 RECHAZO OPTIMIZADO
         // ========================================
-        
         function rechazarCheckin() {
             const tecnico = document.getElementById('tecnico').value;
             const supervisor = document.getElementById('supervisor').value;
-            
+
             if (!tecnico || !supervisor) {
                 alert('❌ Faltan datos básicos para procesar el rechazo');
                 return;
             }
-            
+
             const motivoRechazo = prompt(`❌ RECHAZAR SOLICITUD CHECK-IN MANUAL
-            
+
 Técnico: ${tecnico}
 Supervisor: ${supervisor}
 
@@ -1199,12 +1162,12 @@ Ejemplos:
 • Otro motivo (especificar)
 
 Motivo del rechazo:`);
-            
+
             if (motivoRechazo && motivoRechazo.trim()) {
                 procesarRechazo(motivoRechazo.trim());
             }
         }
-        
+
         async function procesarRechazo(motivoRechazo) {
             // ✅ DATOS OPTIMIZADOS SIN DUPLICACIONES
             const datosRechazo = {
@@ -1215,32 +1178,32 @@ Motivo del rechazo:`);
                 zona_utilizada: document.getElementById('zona').value,
                 turno: document.getElementById('turno').value,
                 motivo_rechazo: motivoRechazo,
-                
+
                 // Fechas optimizadas
                 fecha_evento: parametrosURL.fecha_evento,
                 timestamp: Math.floor(Date.now()/1000),
-                
+
                 // Contexto
                 horario_turno: parametrosURL.horario_turno,
                 telefono: parametrosURL.telefono,
                 hash_validacion: parametrosURL.hash_validacion,
-                
+
                 // Metadatos
                 accion: 'RECHAZO_SUPERVISOR',
                 metodo_check_in: 'RECHAZADO_SUPERVISOR',
                 ubicacion_verificada: 'NO_VERIFICADA',
                 observaciones_sistema: `Rechazado por supervisor: ${motivoRechazo}`,
-                
+
                 // Error context
                 error_message: motivoOriginal,
-                
+
                 // Datos dispositivo
                 datos_dispositivo: JSON.stringify({
                     userAgent: navigator.userAgent,
                     platform: navigator.platform,
                     tipo_accion: 'RECHAZO_SUPERVISOR'
                 }),
-                
+
                 // Historial
                 historial_completo: JSON.stringify(historialErroresGPS)
             };
@@ -1260,6 +1223,7 @@ Motivo rechazo: ${motivoRechazo}
 
             if (confirm(confirmacion)) {
                 mostrarLoading(true);
+
                 try {
                     await enviarWebhookRechazo(datosRechazo);
                     mostrarRechazoExitoso();
@@ -1271,52 +1235,51 @@ Motivo rechazo: ${motivoRechazo}
                 }
             }
         }
-        
+
         async function enviarWebhookRechazo(datos) {
             const url = WEBHOOK_RECHAZO + '?' + new URLSearchParams(datos).toString();
-            
             console.log('📤 Enviando rechazo a webhook:', url);
-            
-            const response = await fetch(url, { 
+
+            const response = await fetch(url, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             console.log('✅ Rechazo enviado exitosamente');
             return response;
         }
-        
+
         function mostrarRechazoExitoso() {
             alert('❌ SOLICITUD RECHAZADA CORRECTAMENTE\n\n📊 Registro de rechazo procesado\n📧 RRHH y técnico notificados\n📝 Flag disciplinario activado\n\n⚠️ El técnico deberá justificar su ausencia\n📞 Recomendamos contacto directo con RRHH');
-            
+
             setTimeout(() => {
                 window.close() || (window.location.href = 'about:blank');
             }, 2000);
         }
-        
+
         // ========================================
         // 🎨 UTILIDADES DE INTERFAZ
         // ========================================
-        
         function mostrarLoading(mostrar) {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = mostrar ? 'flex' : 'none';
-            
+
             if (mostrar) {
                 document.body.style.pointerEvents = 'none';
             } else {
                 document.body.style.pointerEvents = 'auto';
             }
         }
-        
+
         // ========================================
         // 🚀 MEJORAS UX OPTIMIZADAS
         // ========================================
-        
         document.addEventListener('DOMContentLoaded', function() {
             const camposRequeridos = document.querySelectorAll('input[required], select[required]');
             camposRequeridos.forEach(campo => {
@@ -1328,13 +1291,13 @@ Motivo rechazo: ${motivoRechazo}
                     }
                 }
             });
-            
+
             const tooltips = {
                 'supervisor_pin': 'PIN de 4 dígitos asignado por el administrador del sistema',
                 'motivo_cambio': 'Selecciona el motivo más específico que describa la situación',
                 'observaciones': 'Añade cualquier contexto adicional que ayude a entender la situación'
             };
-            
+
             Object.entries(tooltips).forEach(([id, texto]) => {
                 const elemento = document.getElementById(id);
                 if (elemento) {
@@ -1342,22 +1305,21 @@ Motivo rechazo: ${motivoRechazo}
                 }
             });
         });
-        
+
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 document.getElementById('submit-btn').click();
             }
-            
+
             if (e.key === 'Escape') {
                 if (confirm('❌ ¿Quieres rechazar esta solicitud de check-in?')) {
                     rechazarCheckin();
                 }
             }
         });
-        
+
         console.log('✅ Formulario supervisor optimizado inicializado');
-        
     </script>
 </body>
 </html>
