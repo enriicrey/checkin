@@ -1113,8 +1113,8 @@ Completa todos los campos obligatorios.`);
                 zonas_secundarias: parametrosURL.zonas_secundarias,
 
                 // ✅ METADATOS OPTIMIZADOS
-                metodo_check_in: 'Manual_Supervisor',
-                ubicacion_verificada: 'Supervisor_Validado',
+                metodo_check_in: 'Supervisor',
+                ubicacion_verificada: 'true',
 
                 // ✅ DISPOSITIVO UNIFICADO
                 datos_dispositivo: JSON.stringify({
@@ -1249,8 +1249,8 @@ Motivo del rechazo:`);
 
                 // Metadatos
                 accion: 'RECHAZO_SUPERVISOR',
-                metodo_check_in: 'RECHAZADO_SUPERVISOR',
-                ubicacion_verificada: 'NO_VERIFICADA',
+                metodo_check_in: 'Rechazado',
+                ubicacion_verificada: 'false',
                 observaciones_sistema: `Rechazado por supervisor: ${motivoRechazo}`,
 
                 // Error context
