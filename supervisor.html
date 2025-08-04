@@ -539,17 +539,27 @@
             }
         }
         
-        function marcarComoReadonly(campo) {
-            const grupo = document.getElementById(`group-${campo}`);
-            const elemento = document.getElementById(campo);
-            const label = grupo?.querySelector('label');
-            
-            if (grupo && elemento && label) {
-                grupo.classList.add('readonly');
-                elemento.setAttribute('readonly', true);
+function marcarComoReadonly(campo) {
+    const grupo = document.getElementById(`group-${campo}`);
+    const elemento = document.getElementById(campo);
+    
+    if (elemento) {  // ✅ ASEGURAR que el elemento funcione
+        elemento.setAttribute('readonly', true);
+        
+        // Solo aplicar estilos de grupo si existe
+        if (grupo) {
+            const label = grupo.querySelector('label');
+            grupo.classList.add('readonly');
+            if (label && !label.innerHTML.includes('PRE-LLENADO')) {
                 label.innerHTML += '<span class="readonly-badge">PRE-LLENADO</span>';
             }
         }
+        
+        console.log(`✅ Campo ${campo} marcado como readonly`);
+    } else {
+        console.warn(`❌ Elemento ${campo} no encontrado para marcar readonly`);
+    }
+}
         
         function preseleccionarMotivo(errorOriginal) {
     const motivoSelect = document.getElementById('motivo_cambio');
