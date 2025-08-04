@@ -782,12 +782,16 @@ Añade aquí el contexto que consideres relevante...`;
         }
 
         // ========================================
-        // 🔐 VALIDACIÓN DE PIN - CORREGIDA
+        // 🔐 VALIDACIÓN DE PIN - CORREGIDA Y OPTIMIZADA
         // ========================================
+        let validandoPin = false; // ✅ FLAG para evitar validaciones múltiples
+        let timeoutValidacion = null; // ✅ Control de timeout
+
         function configurarEventListeners() {
             const pinInput = document.getElementById('supervisor_pin');
             pinInput.addEventListener('input', manejarInputPin);
-            pinInput.addEventListener('blur', validarPinCompleto);
+            // ✅ REMOVEMOS el blur listener que causaba re-validaciones
+            // pinInput.addEventListener('blur', validarPinCompleto);
 
             const motivoSelect = document.getElementById('motivo_cambio');
             motivoSelect.addEventListener('change', detectarCambioMotivo);
@@ -800,29 +804,66 @@ Añade aquí el contexto que consideres relevante...`;
             const pin = e.target.value;
             const status = document.getElementById('pin-status');
 
+            // ✅ LIMPIAR timeout anterior si existe
+            if (timeoutValidacion) {
+                clearTimeout(timeoutValidacion);
+                timeoutValidacion = null;
+            }
+
+            // ✅ RESETEAR estado si se está editando un PIN ya validado
+            if (pinValidado && pin.length < 4) {
+                pinValidado = false;
+                document.getElementById('submit-btn').disabled = true;
+                e.target.className = 'pin-input';
+            }
+
             if (pin.length === 0) {
                 e.target.className = 'pin-input';
                 status.textContent = '';
+                pinValidado = false;
             } else if (pin.length < 4) {
                 e.target.className = 'pin-input';
                 status.textContent = '⏳';
+                pinValidado = false;
             } else if (pin.length === 4) {
-                status.textContent = '🔍';
-                setTimeout(() => validarPinCompleto(), 500);
+                // ✅ SOLO validar si no está ya validando y no está ya validado
+                if (!validandoPin && !pinValidado) {
+                    status.textContent = '🔍';
+                    timeoutValidacion = setTimeout(() => validarPinCompleto(), 500);
+                }
             }
         }
 
         async function validarPinCompleto() {
+            // ✅ PREVENIR validaciones múltiples
+            if (validandoPin) {
+                console.log('⚠️ Validación ya en curso, saltando...');
+                return;
+            }
+
             const pin = document.getElementById('supervisor_pin').value;
             const supervisor = document.getElementById('supervisor').value;
             const pinInput = document.getElementById('supervisor_pin');
             const status = document.getElementById('pin-status');
 
-            if (pin.length !== 4 || !supervisor) {
+            // ✅ VALIDACIONES previas mejoradas
+            if (pin.length !== 4) {
+                console.log('⚠️ PIN no tiene 4 dígitos, saltando validación');
                 return;
             }
 
+            if (!supervisor || supervisor.trim() === '') {
+                console.log('⚠️ Email supervisor vacío, saltando validación');
+                status.textContent = '📧';
+                return;
+            }
+
+            // ✅ MARCAR como validando
+            validandoPin = true;
+            status.textContent = '🔍';
+
             try {
+                console.log('🔍 Iniciando validación PIN para:', supervisor);
                 const esValido = await validarPINSupervisor(pin, supervisor);
 
                 if (esValido) {
@@ -830,17 +871,23 @@ Añade aquí el contexto que consideres relevante...`;
                     status.textContent = '✅';
                     pinValidado = true;
                     habilitarFormulario();
+                    console.log('✅ PIN validado correctamente');
                 } else {
                     pinInput.className = 'pin-input invalid';
                     status.textContent = '❌';
                     pinValidado = false;
                     mostrarErrorPin();
+                    console.log('❌ PIN inválido');
                 }
             } catch (error) {
-                console.error('Error validando PIN:', error);
+                console.error('❌ Error validando PIN:', error);
                 pinInput.className = 'pin-input invalid';
                 status.textContent = '⚠️';
                 pinValidado = false;
+                // ✅ NO mostrar error automáticamente en catch, ya se maneja en validarPINSupervisor
+            } finally {
+                // ✅ SIEMPRE liberar el flag
+                validandoPin = false;
             }
         }
 
@@ -853,7 +900,9 @@ Añade aquí el contexto que consideres relevante...`;
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    // ✅ AÑADIR timeout para evitar cuelgues
+                    signal: AbortSignal.timeout(10000) // 10 segundos timeout
                 });
 
                 if (!response.ok) {
@@ -880,29 +929,39 @@ Añade aquí el contexto que consideres relevante...`;
 
             } catch (error) {
                 console.error('❌ Error validando PIN:', error);
-                const pinInput = document.getElementById('supervisor_pin');
-                const status = document.getElementById('pin-status');
-
-                pinInput.className = 'pin-input invalid';
-                status.textContent = '⚠️';
-
-                if (error.name === 'TypeError' || error.message.includes('fetch')) {
-                    mostrarErrorPin('Error de conexión. Verifica tu internet y reintenta.');
+                
+                // ✅ MANEJO MEJORADO de errores sin mostrar alertas múltiples
+                if (error.name === 'AbortError') {
+                    console.log('⏰ Timeout en validación PIN');
+                    return false;
+                } else if (error.name === 'TypeError' || error.message.includes('fetch')) {
+                    console.log('🌐 Error de conexión en validación PIN');
+                    // ✅ NO mostrar alert aquí, solo en casos específicos
+                    return false;
                 } else {
-                    mostrarErrorPin('Error del servidor. Contacta al administrador.');
+                    console.log('⚠️ Error del servidor en validación PIN');
+                    return false;
                 }
-                return false;
             }
         }
 
         function mostrarErrorPin(mensajePersonalizado = null) {
+            // ✅ SOLO mostrar error si no se ha validado correctamente Y es un error real
+            if (pinValidado) {
+                return; // No mostrar error si ya está validado
+            }
+
             const mensajeDefault = `❌ PIN incorrecto para este supervisor
 
 Verifica el PIN e intenta nuevamente.
 Si el problema persiste, contacta al administrador del sistema.`;
 
             const mensaje = mensajePersonalizado || mensajeDefault;
-            alert(mensaje);
+            
+            // ✅ SOLO mostrar alert en errores críticos, no en errores de conexión automáticos
+            if (mensajePersonalizado || !validandoPin) {
+                alert(mensaje);
+            }
 
             const pinInput = document.getElementById('supervisor_pin');
             pinInput.value = '';
