@@ -408,6 +408,7 @@
                         <option value="GPS falló múltiples veces">🔄 GPS falló múltiples veces</option>
                         <option value="Ubicación fuera de España">🌍 Ubicación fuera de España</option>
                         <option value="Error técnico del sistema">⚠️ Error técnico del sistema</option>
+                        <option value="Técnico fuera de zona asignada">📍 Técnico fuera de zona asignada</option>
                     </optgroup>
                     
                     <optgroup label="🚨 Situaciones Especiales">
@@ -551,32 +552,158 @@
         }
         
         function preseleccionarMotivo(errorOriginal) {
-            const motivoSelect = document.getElementById('motivo_cambio');
+    const motivoSelect = document.getElementById('motivo_cambio');
+    const mapeoAutomaticoErrores = {
+        // Errores técnicos GPS (mapeo exacto)
+        'PERMISOS_GPS_DENEGADOS': 'Permisos de ubicación denegados',
+        'GPS_NO_DISPONIBLE': 'Ubicación no disponible',
+        'TIMEOUT_GPS': 'Tiempo agotado obteniendo GPS',
+        'GPS_IMPRECISO': 'GPS impreciso',
+        'ERROR_GPS_DESCONOCIDO': 'Error técnico del sistema',
+        'GEOLOCATION_NO_SOPORTADO': 'GPS no soportado en dispositivo',
+        
+        // Errores de ubicación (mapeo corregido)
+        'FUERA_ZONA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
+        'ZONA_LEJANA': 'Técnico fuera de zona asignada', // ✅ CORREGIDO
+        
+        // Errores críticos
+        'FUERA_ESPANA': 'Ubicación fuera de España',
+        'GPS_SOSPECHOSO': 'Error técnico del sistema',
+        'DISPOSITIVO_SOSPECHOSO': 'Error técnico del sistema',
+        
+        // Errores de sistema
+        'LIMITE_ALCANZADO': 'GPS falló múltiples veces',
+        'COORDENADAS_INVALIDAS': 'Error técnico del sistema',
+        'COORDENADAS_NULAS': 'Error técnico del sistema'
+    };
+    
+    // ✅ MAPEO POR TEXTO (fallback)
+    const mapeoTexto = {
+        'Permisos de ubicación denegados': 'Permisos de ubicación denegados',
+        'Ubicación no disponible': 'Ubicación no disponible', 
+        'Tiempo agotado obteniendo GPS': 'Tiempo agotado obteniendo GPS',
+        'GPS impreciso': 'GPS impreciso',
+        'GPS falló múltiples veces': 'GPS falló múltiples veces',
+        'Ubicación fuera de España': 'Ubicación fuera de España',
+        'Error técnico del sistema': 'Error técnico del sistema'
+    };
+    
+    console.log('🔍 Mapeo automático para error:', errorOriginal);
+    
+    // 1. Intentar mapeo automático por tipo de error
+    for (let tipoError in mapeoAutomaticoErrores) {
+        if (errorOriginal.includes(tipoError)) {
+            motivoSelect.value = mapeoAutomaticoErrores[tipoError];
+            console.log('✅ Mapeo automático exitoso:', mapeoAutomaticoErrores[tipoError]);
             
-            const mapeoErrores = {
-                'Permisos de ubicación denegados': 'Permisos de ubicación denegados',
-                'Ubicación no disponible': 'Ubicación no disponible',
-                'Tiempo agotado obteniendo GPS': 'Tiempo agotado obteniendo GPS',
-                'GPS impreciso': 'GPS impreciso',
-                'GPS falló múltiples veces': 'GPS falló múltiples veces',
-                'Ubicación fuera de España': 'Ubicación fuera de España',
-                'Error técnico del sistema': 'Error técnico del sistema'
-            };
-            
-            for (let key in mapeoErrores) {
-                if (errorOriginal.includes(key)) {
-                    motivoSelect.value = mapeoErrores[key];
-                    return;
-                }
+            // ✅ LIMPIAR placeholder si se mapeó automáticamente
+            const observaciones = document.getElementById('observaciones');
+            if (observaciones.placeholder.includes('ERROR NO MAPEADO')) {
+                observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
             }
-            
-            if (errorOriginal.toLowerCase().includes('gps')) {
-                motivoSelect.value = 'GPS falló múltiples veces';
-            } else if (errorOriginal.toLowerCase().includes('permiso')) {
-                motivoSelect.value = 'Permisos de ubicación denegados';
-            } else if (errorOriginal.toLowerCase().includes('timeout') || errorOriginal.toLowerCase().includes('tiempo')) {
-                motivoSelect.value = 'Tiempo agotado obteniendo GPS';
-            }
+            return;
+        }
+    }
+    
+    // 2. Intentar mapeo por texto coincidente
+    for (let textoError in mapeoTexto) {
+        if (errorOriginal.includes(textoError)) {
+            motivoSelect.value = mapeoTexto[textoError];
+            console.log('✅ Mapeo por texto exitoso:', mapeoTexto[textoError]);
+            return;
+        }
+    }
+    
+    // 3. Mapeo por patrones (mejorado)
+    if (errorOriginal.toLowerCase().includes('fuera') && errorOriginal.toLowerCase().includes('zona')) {
+        motivoSelect.value = 'Técnico fuera de zona asignada';
+        console.log('✅ Mapeo por patrón: fuera de zona');
+    } else if (errorOriginal.toLowerCase().includes('gps') && errorOriginal.toLowerCase().includes('precis')) {
+        motivoSelect.value = 'GPS impreciso';
+        console.log('✅ Mapeo por patrón: GPS impreciso');
+    } else if (errorOriginal.toLowerCase().includes('gps')) {
+        motivoSelect.value = 'GPS falló múltiples veces';
+        console.log('✅ Mapeo por patrón: GPS genérico');
+    } else if (errorOriginal.toLowerCase().includes('permiso') || errorOriginal.toLowerCase().includes('denied')) {
+        motivoSelect.value = 'Permisos de ubicación denegados';
+        console.log('✅ Mapeo por patrón: permisos');
+    } else if (errorOriginal.toLowerCase().includes('timeout') || errorOriginal.toLowerCase().includes('tiempo')) {
+        motivoSelect.value = 'Tiempo agotado obteniendo GPS';
+        console.log('✅ Mapeo por patrón: timeout');
+    } else {
+        // ✅ NO SE PUDO MAPEAR - MOSTRAR AYUDA AL SUPERVISOR
+        console.warn('❌ Error no mapeado automáticamente:', errorOriginal);
+        mostrarErrorNoMapeado(errorOriginal);
+    }
+}
+
+// 3. NUEVA función para errores no mapeados:
+function mostrarErrorNoMapeado(errorOriginal) {
+    const observaciones = document.getElementById('observaciones');
+    const motivoSelect = document.getElementById('motivo_cambio');
+    
+    // ✅ MOSTRAR AYUDA EN OBSERVACIONES
+    observaciones.placeholder = `⚠️ ERROR NO MAPEADO AUTOMÁTICAMENTE - SELECCIONA MANUALMENTE
+    
+Error original: "${errorOriginal}"
+
+💡 SUGERENCIAS:
+• Si menciona "GPS" → "GPS falló múltiples veces" 
+• Si menciona "ubicación" → "Ubicación no disponible"
+• Si menciona "timeout/tiempo" → "Tiempo agotado obteniendo GPS"
+• Si menciona "permisos" → "Permisos de ubicación denegados"
+• Si menciona "zona/distancia" → "Técnico fuera de zona asignada"
+• Si no está claro → "Error técnico del sistema"
+
+Añade aquí el contexto que consideres relevante...`;
+
+    // ✅ RESALTAR CAMPO MOTIVO
+    const grupo = document.getElementById('group-motivo_cambio');
+    grupo.style.borderColor = '#ff9800';
+    grupo.style.backgroundColor = '#fff3e0';
+    
+    // ✅ AÑADIR INDICADOR VISUAL
+    const badge = document.getElementById('motivo-badge');
+    badge.style.display = 'block';
+    badge.textContent = 'REVISAR';
+    badge.style.backgroundColor = '#ff9800';
+    
+    // ✅ SCROLL HACIA EL CAMPO
+    motivoSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    console.log('⚠️ Supervisor debe seleccionar motivo manualmente para:', errorOriginal);
+}
+
+// 4. MEJORAR función detectarCambioMotivo() para limpiar ayuda:
+function detectarCambioMotivo() {
+    const motivoActual = document.getElementById('motivo_cambio').value;
+    const badge = document.getElementById('motivo-badge');
+    const grupo = document.getElementById('group-motivo_cambio');
+    const observaciones = document.getElementById('observaciones');
+    
+    // ✅ LIMPIAR AYUDA CUANDO SE SELECCIONE MOTIVO
+    if (motivoActual && observaciones.placeholder.includes('ERROR NO MAPEADO')) {
+        observaciones.placeholder = 'Detalles adicionales, contexto de la situación, confirmaciones telefónicas, etc...';
+        grupo.style.borderColor = '';
+        grupo.style.backgroundColor = '';
+        
+        // Mantener badge solo si realmente cambió vs original
+        const motivoCambio = motivoOriginal && motivoActual !== motivoOriginal && 
+                            !motivoActual.includes(motivoOriginal) && 
+                            !motivoOriginal.includes(motivoActual);
+        
+        if (motivoCambio) {
+            grupo.classList.add('motivo-changed');
+            badge.style.display = 'block';
+            badge.textContent = 'MODIFICADO';
+            badge.style.backgroundColor = '#28a745';
+        } else {
+            grupo.classList.remove('motivo-changed');
+            badge.style.display = 'none';
+        }
+    }
+}
+          
         }
         
         function autoDetectarTurno() {
