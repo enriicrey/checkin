@@ -1194,7 +1194,7 @@ function enviarSupervisorInmediato(tipo, evento) {
         `&anomalias_detectadas=${encodeURIComponent(JSON.stringify(evento.datos_completos?.anomalias || []))}` +
         `&datos_dispositivo=${encodeURIComponent(JSON.stringify(evento.datos_completos?.dispositivo || {}))}` +
         `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` + // ✅ AÑADIDO
-        `&metodo_check_in=GPS_Critico`; // ✅ AÑADIDO
+        `&metodo_check_in=Supervisor`; // ✅ AÑADIDO
 
     fetch(url, {method: 'GET'})
         .then(() => console.log('✅ Supervisor notificado inmediatamente'))
@@ -1602,7 +1602,7 @@ function enviarSupervisorInmediato(tipo, evento) {
         `&tipos_errores=${encodeURIComponent(resumen.tipos_errores.join(','))}` +
         `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` +
         `&datos_dispositivo=${encodeURIComponent(JSON.stringify(historialErroresGPS[0]?.dispositivo || {}))}` + // ✅ AÑADIDO
-        `&metodo_check_in=GPS_Fallido` + // ✅ AÑADIDO
+        `&metodo_check_in=Supervisor` + // ✅ AÑADIDO
         `&resumen_eventos=${encodeURIComponent(JSON.stringify(resumen))}` +
         `&timestamp=${Math.floor(Date.now()/1000)}`;
 
@@ -1655,7 +1655,7 @@ return {
     zona_utilizada: zonaSeleccionada,
     es_zona_secundaria: esZonaSecundaria,
     motivo_cambio: motivoSeleccionado,
-    metodo_check_in: "Manual", // ✅ CORREGIDO: metodo_checkin → metodo_check_in
+    metodo_check_in: "Supervisor", // ✅ CORREGIDO: metodo_checkin → metodo_check_in
     ubicacion_reportada: ubicacionReportada,
     ubicacion_verificada: "No Válida"
 };
@@ -1864,7 +1864,7 @@ function enviarSolicitudManual(infoSolicitud) {
         `&info_solicitud=${encodeURIComponent(infoSolicitud)}` +
         `&historial_completo=${encodeURIComponent(JSON.stringify(historialErroresGPS))}` + // ✅ CORREGIDO
         `&datos_dispositivo=${encodeURIComponent(JSON.stringify(deviceFingerprint))}` + // ✅ CORREGIDO
-        `&metodo_check_in=Solicitud_Manual` + // ✅ AÑADIDO
+        `&metodo_check_in=Supervisor` + // ✅ AÑADIDO
         `&timestamp=${Math.floor(Date.now()/1000)}`;
 
     fetch(url, {method: 'GET'})
