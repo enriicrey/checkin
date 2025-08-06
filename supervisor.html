@@ -460,7 +460,7 @@
         let parametrosURL = {};
 
         const WEBHOOK_MANUAL = 'https://hook.eu2.make.com/wve7gq8kh6ytw6tq4vfxiepi928n2yk8';
-        const WEBHOOK_RECHAZO = 'https://hook.eu2.make.com/s4muyq3qoiskm1kgajybk25v8wxo712l';
+        const WEBHOOK_RECHAZO = 'https://hook.eu2.make.com/wve7gq8kh6ytw6tq4vfxiepi928n2yk8';
         const WEBHOOK_VALIDAR_PIN = 'https://hook.eu2.make.com/jrfjqan7utpu25x6tjoikhn3xl6i83yu';
 
         // ========================================
@@ -1113,8 +1113,8 @@ Completa todos los campos obligatorios.`);
                 zonas_secundarias: parametrosURL.zonas_secundarias,
 
                 // ✅ METADATOS OPTIMIZADOS
-                metodo_check_in: 'Manual_Supervisor',
-                ubicacion_verificada: 'Supervisor_Validado',
+                metodo_check_in: 'Supervisor',
+                ubicacion_verificada: 'true',
 
                 // ✅ DISPOSITIVO UNIFICADO
                 datos_dispositivo: JSON.stringify({
